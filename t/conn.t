@@ -42,6 +42,7 @@ $::HttpConfig
                 else
                     local conn = err
                     ngx.say(i, ": ", delay, ", conn: ", conn)
+                    ngx.say("committed: ", lim:is_committed())
                 end
             end
         ';
@@ -50,17 +51,27 @@ $::HttpConfig
     GET /t
 --- response_body
 1: 0, conn: 1
+committed: true
 2: 0, conn: 2
+committed: true
 3: 1, conn: 3
+committed: true
 4: 1, conn: 4
+committed: true
 5: 2, conn: 5
+committed: true
 6: 2, conn: 6
+committed: true
 7: 3, conn: 7
+committed: true
 8: 3, conn: 8
+committed: true
 9: 4, conn: 9
+committed: true
 10: 4, conn: 10
-failed to limit conn: busy
-failed to limit conn: busy
+committed: true
+failed to limit conn: rejected
+failed to limit conn: rejected
 --- no_error_log
 [error]
 [lua]
@@ -88,6 +99,7 @@ $::HttpConfig
                 else
                     local conn = err
                     ngx.say(i, ": ", delay, ", conn: ", conn)
+                    ngx.say("committed: ", lim:is_committed())
                 end
             end
         ';
@@ -96,17 +108,29 @@ $::HttpConfig
     GET /t
 --- response_body
 1: 0, conn: 1
+committed: false
 2: 0, conn: 1
+committed: false
 3: 0, conn: 1
+committed: true
 4: 0, conn: 2
+committed: false
 5: 0, conn: 2
+committed: true
 6: 1, conn: 3
+committed: false
 7: 1, conn: 3
+committed: false
 8: 1, conn: 3
+committed: false
 9: 1, conn: 3
+committed: false
 10: 1, conn: 3
+committed: false
 11: 1, conn: 3
+committed: false
 12: 1, conn: 3
+committed: false
 --- no_error_log
 [error]
 [lua]

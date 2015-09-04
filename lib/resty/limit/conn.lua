@@ -45,11 +45,13 @@ function _M.incoming(self, key, commit)
     local dict = self.dict
     local max = self.max
 
+    self.committed = false
+
     local conn = dict:get(key)
     if conn then
         if conn >= max then
             if conn >= max + self.burst then
-                return nil, "busy"
+                return nil, "rejected"
             end
 
             if commit then
@@ -64,6 +66,8 @@ function _M.incoming(self, key, commit)
                         return nil, err
                     end
                 end
+
+                self.committed = true
             else
                 conn = conn + 1
             end
@@ -79,6 +83,7 @@ function _M.incoming(self, key, commit)
                 return nil, err
             end
 
+            self.committed = true
             return 0, new_conn
         end
 
@@ -105,12 +110,19 @@ function _M.incoming(self, key, commit)
             else
                 conn = 1
             end
+
+            self.committed = true
         else
             conn = 1
         end
     end
 
     return 0, conn  -- we return a 0 delay by default
+end
+
+
+function _M.is_committed(self)
+    return self.committed
 end
 
 

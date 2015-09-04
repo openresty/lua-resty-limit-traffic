@@ -84,14 +84,13 @@ $::HttpConfig
     }
 --- request
     GET /t
---- response_body_like eval
-qr/^delay1: 0
+--- response_body
+delay1: 0
 excess1: 0
-delay2: 0\.(?:4[6-9]|5|6[0-4])\d*
+delay2: 0.5
 excess2: 1
 delay3: 0
-delay4: 0\.(?:4[6-9]|5|6[0-4])\d*
-$/
+delay4: 0.5
 --- no_error_log
 [error]
 [lua]
@@ -130,9 +129,9 @@ $::HttpConfig
 --- request
     GET /t
 --- response_body
-2: error: busy
-3: error: busy
-4: error: busy
+2: error: rejected
+3: error: rejected
+4: error: rejected
 --- no_error_log
 [error]
 [lua]
@@ -165,12 +164,77 @@ $::HttpConfig
     }
 --- request
     GET /t
---- response_body_like eval
-qr/^delay: 0
-delay: 0\.(?:4[6-9]|5|6[0-4])\d*
-delay: (?:1|(?:0\.9[6-9]|1\.(?:0[0-3]))\d*)
-delay: (?:1|(?:0\.9[6-9]|1\.(?:0[0-3]))\d*)
-$/
+--- response_body
+delay: 0
+delay: 0.5
+delay: 1
+delay: 1
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 5: bad value in shdict (integer type)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_req = require "resty.limit.req"
+            ngx.shared.store:flush_all()
+            local key = "bar"
+            ngx.shared.store:set("bar", 32)
+            local lim = limit_req.new("store", 2, 10)
+            local delay, err = lim:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit request: ", err)
+            else
+                ngx.say("delay: ", delay)
+            end
+        ';
+    }
+--- request
+    GET /t
+--- response_body
+failed to limit request: shdict abused by other users
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 6: bad value in shdict (string type, and wrong size)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_req = require "resty.limit.req"
+            ngx.shared.store:flush_all()
+            local key = "bar"
+            ngx.shared.store:set("bar", "a")
+            local lim = limit_req.new("store", 2, 10)
+            local delay, err = lim:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit request: ", err)
+            else
+                ngx.say("delay: ", delay)
+            end
+        ';
+    }
+--- request
+    GET /t
+--- response_body
+failed to limit request: shdict abused by other users
 --- no_error_log
 [error]
 [lua]

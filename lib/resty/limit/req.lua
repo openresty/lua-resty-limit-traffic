@@ -15,6 +15,7 @@ local ffi_cast = ffi.cast
 local ffi_str = ffi.string
 local abs = math.abs
 local tonumber = tonumber
+local type = type
 
 
 -- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
@@ -78,6 +79,9 @@ function _M.incoming(self, key, commit)
     -- cdata:
     local v = dict:get(key)
     if v then
+        if type(v) ~= "string" or #v ~= rec_size then
+            return nil, "shdict abused by other users"
+        end
         local rec = ffi_cast(const_rec_ptr_type, v)
         local elapsed = now - tonumber(rec.last)
 
@@ -95,7 +99,7 @@ function _M.incoming(self, key, commit)
         -- print("excess: ", excess)
 
         if excess > self.burst then
-            return nil, "busy"
+            return nil, "rejected"
         end
 
     else
