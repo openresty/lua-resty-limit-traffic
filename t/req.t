@@ -70,12 +70,14 @@ $::HttpConfig
             local limit_req = require "resty.limit.req"
             ngx.shared.store:flush_all()
             local lim = limit_req.new("store", 2, 10)
-            local delay1 = lim:incoming("foo", true)
-            local delay2 = lim:incoming("foo", true)
+            local delay1, excess1 = lim:incoming("foo", true)
+            local delay2, excess2 = lim:incoming("foo", true)
             local delay3 = lim:incoming("bar", true)
             local delay4 = lim:incoming("bar", true)
             ngx.say("delay1: ", delay1)
+            ngx.say("excess1: ", excess1)
             ngx.say("delay2: ", delay2)
+            ngx.say("excess2: ", excess2)
             ngx.say("delay3: ", delay3)
             ngx.say("delay4: ", delay4)
         ';
@@ -84,7 +86,9 @@ $::HttpConfig
     GET /t
 --- response_body_like eval
 qr/^delay1: 0
+excess1: 0
 delay2: 0\.(?:4[6-9]|5|6[0-4])\d*
+excess2: 1
 delay3: 0
 delay4: 0\.(?:4[6-9]|5|6[0-4])\d*
 $/

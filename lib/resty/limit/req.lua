@@ -1,5 +1,7 @@
 -- Copyright (C) Yichun Zhang (agentzh)
--- This library is an approximate Lua port of the standard ngx_limit_req module.
+--
+-- This library is an approximate Lua port of the standard ngx_limit_req
+-- module.
 
 
 local ffi = require "ffi"
@@ -48,13 +50,7 @@ function _M.new(dict_name, rate, burst)
         return nil, "shared dict not found"
     end
 
-    if not rate then
-        return nil, "no rate specified"
-    end
-
-    if not burst then
-        return nil, "no burst specified"
-    end
+    assert(rate > 0 and burst >= 0)
 
     local self = {
         dict = dict,
@@ -68,14 +64,10 @@ end
 
 -- sees an new incoming event
 -- the "commit" argument controls whether should we record the event in shm.
--- FIXME: we have a (small) race-condition window between dict:get() and
+-- FIXME we have a (small) race-condition window between dict:get() and
 -- dict:set() across multiple nginx worker processes. The size of the
 -- window is proportional to the number of workers.
 function _M.incoming(self, key, commit)
-    if key == nil then
-        return nil, "key not defined"
-    end
-
     local dict = self.dict
     local rate = self.rate
     local now = ngx_now() * 1000
@@ -116,7 +108,8 @@ function _M.incoming(self, key, commit)
         dict:set(key, ffi_str(rec_cdata, rec_size))
     end
 
-    return excess / rate    -- return the delay in seconds
+    -- return the delay in seconds, as well as excess
+    return excess / rate, excess / 1000
 end
 
 
