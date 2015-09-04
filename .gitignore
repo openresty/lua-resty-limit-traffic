@@ -7,3 +7,4 @@ reindex
 nginx
 ctags
 tags
+*.t_
