@@ -16,7 +16,8 @@ Table of Contents
     * [leaving](#leaving)
     * [set_conn](#set_conn)
     * [set_burst](#set_burst)
-* [Out-of-Sync Counter Prevention](#out-of-sync-counter-prevention)
+* [Caveats](#caveats)
+    * [Out-of-Sync Counter Prevention](#out-of-sync-counter-prevention)
 * [Instance Sharing](#instance-sharing)
 * [Limiting Granularity](#limiting-granularity)
 * [Installation](#installation)
@@ -275,6 +276,8 @@ Overwrites the `burst` threshold value as specified in the [new](#new) method.
 Caveats
 ========
 
+[Back to TOC](#table-of-contents)
+
 Out-of-Sync Counter Prevention
 ------------------------------
 
@@ -287,6 +290,8 @@ add automatic protection for such cases to this Lua module in the near future.
 Also, it is very important to ensure that the `leaving` call appears first in your
 `log_by_lua*` handler code to minimize the chance that other `log_by_lua*` Lua code
 throws out an exception and prevents the `leaving` call from running.
+
+[Back to TOC](#table-of-contents)
 
 Instance Sharing
 ================
