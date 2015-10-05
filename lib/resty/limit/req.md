@@ -14,6 +14,7 @@ Table of Contents
     * [incoming](#incoming)
     * [set_rate](#set_rate)
     * [set_burst](#set_burst)
+    * [uncommit](#uncommit)
 * [Instance Sharing](#instance-sharing)
 * [Limiting Granularity](#limiting-granularity)
 * [Installation](#installation)
@@ -187,6 +188,16 @@ set_burst
 **syntax:** `obj:set_burst(burst)`
 
 Overwrites the `burst` threshold as specified in the [new](#new) method.
+
+[Back to TOC](#table-of-contents)
+
+uncommit
+--------
+**syntax:** `ok, err = obj:uncommit(key)`
+
+This tries to undo the commit of the `incoming` call. This is simply an approximation
+and should be used with care. This method is mainly for being used in the [resty.limit.conn](./conn.md)
+Lua module.
 
 [Back to TOC](#table-of-contents)
 

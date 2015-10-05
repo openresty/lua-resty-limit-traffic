@@ -93,6 +93,7 @@ function _M.incoming(self, key, commit)
         excess = tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000
 
         if excess < 0 then
+            -- ngx.log(ngx.WARN, "excess: ", excess / 1000)
             excess = 0
         end
 
@@ -114,6 +115,33 @@ function _M.incoming(self, key, commit)
 
     -- return the delay in seconds, as well as excess
     return excess / rate, excess / 1000
+end
+
+
+function _M.uncommit(self, key)
+    assert(key)
+    local dict = self.dict
+
+    local v = dict:get(key)
+    if not v then
+        return nil, "not found"
+    end
+
+    if type(v) ~= "string" or #v ~= rec_size then
+        return nil, "shdict abused by other users"
+    end
+
+    local rec = ffi_cast(const_rec_ptr_type, v)
+
+    local excess = tonumber(rec.excess) - 1000
+    if excess < 0 then
+        excess = 0
+    end
+
+    rec_cdata.excess = excess
+    rec_cdata.last = rec.last
+    dict:set(key, ffi_str(rec_cdata, rec_size))
+    return true
 end
 
 

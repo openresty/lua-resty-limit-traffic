@@ -238,3 +238,49 @@ failed to limit request: shdict abused by other users
 --- no_error_log
 [error]
 [lua]
+
+
+
+=== TEST 7: a single key (commit & uncommit)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_req = require "resty.limit.req"
+            ngx.shared.store:flush_all()
+            local lim = limit_req.new("store", 40, 40)
+            local begin = ngx.now()
+            local uri = ngx.var.uri
+            for i = 1, 5 do
+                local delay, err = lim:incoming(uri, true)
+                if not delay then
+                    ngx.say("failed to limit request: ", err)
+                    return
+                end
+                ngx.say(i, ": delay: ", delay)
+                -- --[[
+                local ok, err = lim:uncommit(uri)
+                if not ok then
+                    ngx.say("failed to uncommit: ", err)
+                end
+                -- ]]
+            end
+        ';
+    }
+--- request
+    GET /t
+--- response_body
+1: delay: 0
+2: delay: 0.025
+3: delay: 0.025
+4: delay: 0.025
+5: delay: 0.025
+--- no_error_log
+[error]
+[lua]
+

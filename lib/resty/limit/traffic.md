@@ -140,6 +140,9 @@ This method takes the following parameters:
 `key` and `commit`, just like the [resty.limit.req](lib/resty/limit/req.md) objects.
 In addition, this `incoming` method must return a delay and another opaque value representing
 the current state (or a string describing the error when the first return value is `nil`).
+
+    In addition, the limiter object should also take a method named `uncommit` which can be
+used to undo whatever is committed in the `incoming` method call (approximately if not possible to do precisely).
 * `keys` is an array-shaped Lua table that holds all the user keys corresponding to each of the
 concrete limiter object specified in the (previous) `limiters` parameter. The number of elements
 in this table must equate that of the `limiters` table.

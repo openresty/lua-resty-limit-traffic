@@ -191,3 +191,48 @@ leaving. conn: 5
 [error]
 [lua]
 
+
+
+=== TEST 4: a single key (commit & uncommit)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_conn = require "resty.limit.conn"
+            local lim = limit_conn.new("store", 2, 8, 1)
+            ngx.shared.store:flush_all()
+            local key = "foo"
+            for i = 1, 3 do
+                local delay, err = lim:incoming(key, true)
+                if not delay then
+                    ngx.say("failed to limit conn: ", err)
+                else
+                    local conn = err
+                    ngx.say(i, ": ", delay, ", conn: ", conn)
+                    ngx.say("committed: ", lim:is_committed())
+                end
+                local ok, err = lim:uncommit(key)
+                if not ok then
+                    ngx.say("failed to uncommit: ", err)
+                end
+            end
+        ';
+    }
+--- request
+    GET /t
+--- response_body
+1: 0, conn: 1
+committed: true
+2: 0, conn: 1
+committed: true
+3: 0, conn: 1
+committed: true
+--- no_error_log
+[error]
+[lua]
+

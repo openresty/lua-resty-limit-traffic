@@ -144,6 +144,14 @@ function _M.leaving(self, key, req_latency)
 end
 
 
+function _M.uncommit(self, key)
+    assert(key)
+    local dict = self.dict
+
+    return dict:incr(key, -1)
+end
+
+
 function _M.set_conn(self, conn)
     self.conn = conn
 end
