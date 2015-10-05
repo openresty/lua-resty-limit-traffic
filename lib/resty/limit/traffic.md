@@ -30,32 +30,6 @@ http {
     lua_shared_dict my_req_store 100m;
     lua_shared_dict my_conn_store 100m;
 
-    init_worker_by_lua '
-        local period = 15 * 60 -- in seconds
-
-        local flush
-        function flush(premature, no_clear)
-            if premature then
-                return
-            end
-
-            if not no_clear then
-                -- here we flush the store periodically to avoid any
-                -- (potential) out-of-sync concurrent request counters.
-                ngx.shared.my_conn_store:flush_all()
-            end
-
-            local ok, err = ngx.timer.at(period, flush)
-            if not ok then
-                ngx.log(ngx.ERR, "failed to create a timer for ",
-                        "flushing the store: ", err)
-                return
-            end
-        end
-
-        flush(false, true)
-    ';
-
     server {
         location / {
             access_by_lua '
