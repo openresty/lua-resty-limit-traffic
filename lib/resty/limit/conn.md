@@ -76,6 +76,7 @@ http {
                     local ctx = ngx.ctx
                     ctx.limit_conn = lim
                     ctx.limit_conn_key = key
+                    ctx.limit_conn_delay = delay
                 end
 
                 -- the 2nd return value holds the current concurrency level
@@ -102,8 +103,8 @@ http {
                 if lim then
                     -- if you are using an upstream module in the content phase,
                     -- then you probably want to use $upstream_response_time
-                    -- instead of $request_time below.
-                    local latency = tonumber(ngx.var.request_time)
+                    -- instead of ($request_time - ctx.limit_conn_delay) below.
+                    local latency = tonumber(ngx.var.request_time) - ctx.limit_conn_delay
                     local key = ctx.limit_conn_key
                     assert(key)
                     local conn, err = lim:leaving(key, latency)
