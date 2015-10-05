@@ -36,32 +36,6 @@ Synopsis
 http {
     lua_shared_dict my_limit_conn_store 100m;
 
-    init_worker_by_lua '
-        local period = 15 * 60 -- in seconds
-
-        local flush
-        function flush(premature, no_clear)
-            if premature then
-                return
-            end
-
-            if not no_clear then
-                -- here we flush the store periodically to avoid any
-                -- (potential) out-of-sync concurrent request counters.
-                ngx.shared.my_limit_conn_store:flush_all()
-            end
-
-            local ok, err = ngx.timer.at(period, flush)
-            if not ok then
-                ngx.log(ngx.ERR, "failed to create a timer for ",
-                        "flushing the store: ", err)
-                return
-            end
-        end
-
-        flush(false, true)
-    ';
-
     server {
         location / {
             access_by_lua '
@@ -297,22 +271,21 @@ Overwrites the `burst` threshold value as specified in the [new](#new) method.
 
 [Back to TOC](#table-of-contents)
 
+Caveats
+========
+
 Out-of-Sync Counter Prevention
-===============================
+------------------------------
 
 Under extreme conditions, like nginx worker processes crash in the middle of request processing,
 the counters stored in the shm zones can go out of sync. This can lead to catastrophic
-consequences like blindly rejecting *all* the incoming connections for ever. To avoid
-such things ever, it is recommended to use [init_worker_by_lua*](https://github.com/openresty/lua-nginx-module#init_worker_by_lua)
-and a recurring counter (created by [ngx.timer.at](https://github.com/openresty/lua-nginx-module#ngxtimerat)) and to periodically flush the shm zone used by instances of this class
-to ensure that the counters can always get reset eventually.
+consequences like blindly rejecting *all* the incoming connections for ever. (Note that
+the standard ngx_limit_conn module also suffers from this issue.) We may
+add automatic protection for such cases to this Lua module in the near future.
 
-Usually the counters cannot go out of sync and this approach is just a last resort for
-very rare and unexpected failures like worker crashes.
-
-See the example configuration in the [Synopsis](#synopsis) section for more details.
-
-[Back to TOC](#table-of-contents)
+Also, it is very important to ensure that the `leaving` call appears first in your
+`log_by_lua*` handler code to minimize the chance that other `log_by_lua*` Lua code
+throws out an exception and prevents the `leaving` call from running.
 
 Instance Sharing
 ================
