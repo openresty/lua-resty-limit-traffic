@@ -10,6 +10,7 @@ local math = require "math"
 local setmetatable = setmetatable
 local floor = math.floor
 local ngx_shared = ngx.shared
+local assert = assert
 
 
 local _M = {
