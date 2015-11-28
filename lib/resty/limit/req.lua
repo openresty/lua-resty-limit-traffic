@@ -16,6 +16,7 @@ local ffi_str = ffi.string
 local abs = math.abs
 local tonumber = tonumber
 local type = type
+local assert = assert
 
 
 -- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
