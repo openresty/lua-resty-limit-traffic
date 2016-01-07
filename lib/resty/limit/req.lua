@@ -23,9 +23,9 @@ local assert = assert
 -- hash-typed values as in redis.
 ffi.cdef[[
     struct lua_resty_limit_req_rec {
-        unsigned long        last;  /* time in milliseconds */
-        /* integer value, 1 corresponds to 0.001 r/s */
         unsigned long        excess;
+        uint64_t             last;  /* time in milliseconds */
+        /* integer value, 1 corresponds to 0.001 r/s */
     };
 ]]
 local const_rec_ptr_type = ffi.typeof("const struct lua_resty_limit_req_rec*")

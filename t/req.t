@@ -23,11 +23,15 @@ __DATA__
 
 === TEST 1: a single key (always commit)
 --- http_config eval
-"
+qq{
 $::HttpConfig
 
+    init_by_lua_block {
+        local v = require "jit.v"
+        -- v.on("/tmp/a.dump")
+    }
     lua_shared_dict store 1m;
-"
+}
 --- config
     location = /t {
         content_by_lua '
@@ -54,6 +58,7 @@ qr/^elapsed: 1\.9[6-9]\d* sec\.$/
 --- no_error_log
 [error]
 [lua]
+--- timeout: 10
 
 
 
