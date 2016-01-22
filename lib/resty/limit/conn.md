@@ -161,7 +161,7 @@ will get delayed to conform to this threshold.
 delayed.
 
     Requests exceeding this hard limit should get rejected immediately.
-* `default_conn_delay` is the defaul processing latency of a typical connection (or request).
+* `default_conn_delay` is the default processing latency of a typical connection (or request).
 
     This delay is used as a basic unit for the extra delay introduced for excessive concurrent requests (or connections),
 which can later get adjusted dynamically by the subsequent [leaving](#leaving) method
@@ -206,7 +206,7 @@ this method returns a proper delay (in seconds) for the current request so that 
 the `conn` threshold as if it came a bit later rather than now.
 
     In addition, like the previous case, this method
-also returns a second return value indicating the number of concurrent reqeusts (or connections)
+also returns a second return value indicating the number of concurrent requests (or connections)
 at this point (including the current request). This 2nd return value can be used to monitor the
 unadjusted incoming concurrency level.
 3. If the request exceeds the `conn` + `burst` limit, then this method returns `nil` and

@@ -117,7 +117,7 @@ This method takes the following arguments:
 * `shdict_name` is the name of the [lua_shared_dict](https://github.com/openresty/lua-nginx-module#lua_shared_dict) shm zone.
 
     It is best practice to use separate shm zones for different kinds of limiters.
-* `rate` is the specified request rate (number per second) shreshold.
+* `rate` is the specified request rate (number per second) threshold.
 
     Requests exceeding this rate (and below `burst`) will get delayed to conform to the rate.
 * `burst` is the number of excessive requests per second allowed to be delayed.
