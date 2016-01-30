@@ -238,7 +238,7 @@ if and only if this `is_committed` method call returns `true`.
 
 leaving
 --------
-**syntax:** `conn = obj:leaving(key, req_latency)`
+**syntax:** `conn = obj:leaving(key, req_latency?)`
 
 Fires an event that the current request (or connection) is being finalized. Such events
 essentially reduce the current concurrency level.
@@ -249,7 +249,7 @@ the [is_committed](#is_committed) call returns `false` after that [incoming](#in
 This method takes the following parameters:
 
 * `key` is the same key string used in the paired [incoming](#incoming) method call.
-* `req_latency` is the actual latency of the current request (or connection).
+* `req_latency` is the actual latency of the current request (or connection), which is optional.
 
     Often we use the value of either the `$request_time` or `$upstream_response_time` nginx builtin variables here. One can, of course, record the latency himself.
 
