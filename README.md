@@ -363,7 +363,7 @@ See Also
 * module [resty.limit.conn](lib/resty/limit/conn.md)
 * module [resty.limit.traffic](lib/resty/limit/traffic.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
-* OpenResty: http://openresty.org
+* OpenResty: https://openresty.org/
 
 [Back to TOC](#table-of-contents)
 
