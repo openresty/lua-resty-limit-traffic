@@ -1,0 +1,42 @@
+sudo: required
+dist: trusty
+
+os: linux
+
+language: c
+
+compiler:
+  - gcc
+  - clang
+
+env:
+  global:
+    - JOBS=3
+    - NGX_BUILD_JOBS=$JOBS
+    - LUAJIT_LIB=/usr/lib64/libluajit-5.1.so
+    - LUAJIT_INC=/usr/include/luajit-2.0
+    - LUA_INCLUDE_DIR=/usr/include/luajit-2.0
+    - LUA_CMODULE_DIR=/lib
+    - TEST_NGINX_MYSQL_PATH=/var/run/mysqld/mysqld.sock
+    - TEST_NGINX_SLEEP=0.006
+  matrix:
+    - NGINX_VERSION=1.9.15
+
+before_install:
+  - sudo apt-get install -qq -y axel cpanminus libluajit-5.1-dev > build.log 2>&1 || (cat build.log && exit 1)
+
+install:
+  - git clone https://github.com/openresty/test-nginx.git
+  - git clone https://github.com/openresty/openresty.git ../openresty
+  - git clone https://github.com/openresty/nginx-devel-utils.git
+  - git clone https://github.com/openresty/lua-cjson.git
+  - git clone https://github.com/openresty/lua-nginx-module.git ../lua-nginx-module
+  - git clone https://github.com/openresty/no-pool-nginx.git ../no-pool-nginx
+
+script:
+  - cd test-nginx && (sudo cpanm . > build.log 2>&1 || (cat build.log && exit 1)) && cd ..
+  - cd lua-cjson && make && sudo PATH=$PATH make install && cd ..
+  - export PATH=$PWD/work/nginx/sbin:$PWD/nginx-devel-utils:$PATH
+  - ngx-build $NGINX_VERSION --with-ipv6 --with-http_realip_module --with-http_ssl_module --add-module=../lua-nginx-module --with-debug > build.log 2>&1 || (cat build.log && exit 1)
+  - prove -r t
+
