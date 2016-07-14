@@ -196,8 +196,8 @@ uncommit
 **syntax:** `ok, err = obj:uncommit(key)`
 
 This tries to undo the commit of the `incoming` call. This is simply an approximation
-and should be used with care. This method is mainly for being used in the [resty.limit.conn](./conn.md)
-Lua module.
+and should be used with care. This method is mainly for being used in the [resty.limit.traffic](./traffic.md)
+Lua module when combining multiple limiters at the same time.
 
 [Back to TOC](#table-of-contents)
 
