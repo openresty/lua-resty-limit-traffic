@@ -65,7 +65,7 @@ http {
                     return ngx.exit(500)
                 end
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     -- the 2nd return value holds  the number of excess requests
                     -- per second for the specified key. for example, number 31
                     -- means the current request rate is at 231 req/sec for the

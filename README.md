@@ -65,7 +65,7 @@ http {
                     return ngx.exit(500)
                 end
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     -- the 2nd return value holds the number of excess requests
                     -- per second for the specified key. for example, number 31
                     -- means the current request rate is at 231 req/sec for the
@@ -139,7 +139,7 @@ http {
                 -- for the specified key.
                 local conn = err
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     -- the request exceeding the 200 connections ratio but below
                     -- 300 connections, so
                     -- we intentionally delay it here a bit to conform to the
@@ -223,7 +223,7 @@ http {
                 print("sleeping ", delay, " sec, states: ",
                       table.concat(states, ", "))
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     ngx.sleep(delay)
                 end
             ';

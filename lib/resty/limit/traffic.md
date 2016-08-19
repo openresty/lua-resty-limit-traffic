@@ -69,7 +69,7 @@ http {
 
                 print("sleeping ", delay, " sec, states: ", table.concat(states, ", "))
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     ngx.sleep(delay)
                 end
             ';

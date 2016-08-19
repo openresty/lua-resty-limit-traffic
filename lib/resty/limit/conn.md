@@ -85,7 +85,7 @@ http {
                 -- for the specified key.
                 local conn = err
 
-                if delay > 0 then
+                if delay >= 0.001 then
                     -- the request exceeding the 200 connections ratio but below
                     -- 300 connections, so
                     -- we intentionally delay it here a bit to conform to the
