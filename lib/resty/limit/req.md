@@ -36,7 +36,7 @@ http {
 
     server {
         location / {
-            access_by_lua '
+            access_by_lua_block {
                 -- well, we could put the require() and new() calls in our own Lua
                 -- modules to save overhead. here we put them below just for
                 -- convenience.
@@ -77,7 +77,7 @@ http {
                     -- 200 req/sec rate.
                     ngx.sleep(delay)
                 end
-            ';
+            }
 
             # content handler goes here. if it is content_by_lua, then you can
             # merge the Lua code above in access_by_lua into your content_by_lua's

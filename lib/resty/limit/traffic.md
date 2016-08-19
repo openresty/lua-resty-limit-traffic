@@ -32,7 +32,7 @@ http {
 
     server {
         location / {
-            access_by_lua '
+            access_by_lua_block {
                 local limit_conn = require "resty.limit.conn"
                 local limit_req = require "resty.limit.req"
                 local limit_traffic = require "resty.limit.traffic"
@@ -72,13 +72,13 @@ http {
                 if delay >= 0.001 then
                     ngx.sleep(delay)
                 end
-            ';
+            }
 
             # content handler goes here. if it is content_by_lua, then you can
             # merge the Lua code above in access_by_lua into your
             # content_by_lua's Lua handler to save a little bit of CPU time.
 
-            log_by_lua '
+            log_by_lua_block {
                 local ctx = ngx.ctx
                 local lim = ctx.limit_conn
                 if lim then
@@ -96,7 +96,7 @@ http {
                         return
                     end
                 end
-            ';
+            }
          }
     }
 }
