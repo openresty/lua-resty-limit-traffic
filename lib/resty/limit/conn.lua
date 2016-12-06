@@ -23,6 +23,29 @@ local mt = {
 }
 
 
+local function incr_or_init(key, dict)
+    ::retry::
+    local conn, err = dict:incr(key, 1)
+    if not conn then
+        if err == "not found" then
+            local ok, err = dict:add(key, 1)
+            if not ok then
+                if err == "exists" then
+                    goto retry
+                else
+                    return nil, err
+                end
+            else
+                conn = 1
+            end
+        else
+            return nil, err
+        end
+    end
+
+    return conn, err
+end
+
 function _M.new(dict_name, max, burst, default_conn_delay)
     local dict = ngx_shared[dict_name]
     if not dict then
@@ -56,18 +79,8 @@ function _M.incoming(self, key, commit)
             end
 
             if commit then
-                -- FIXME we really need dict:incr_or_init() to avoid race
-                -- conditions here.
                 local err
-                conn, err = dict:incr(key, 1)
-                if not conn then
-                    if err == "not found" then
-                        dict:add(key, 1)
-                    else
-                        return nil, err
-                    end
-                end
-
+                conn, err = incr_or_init(key, dict)
                 self.committed = true
             else
                 conn = conn + 1
@@ -78,12 +91,7 @@ function _M.incoming(self, key, commit)
         end
 
         if commit then
-            -- FIXME: we should use incr_or_init here.
-            local new_conn, err = dict:incr(key, 1)
-            if not new_conn then
-                return nil, err
-            end
-
+            local new_conn, err = incr_or_init(key, dict)
             self.committed = true
             return 0, new_conn
         end
@@ -92,24 +100,10 @@ function _M.incoming(self, key, commit)
 
     else
         if commit then
-            -- FIXME we should use dict:incr_or_init() to simplify the twisted
-            -- code snippet below
-            local ok, err = dict:add(key, 1)
-            if not ok then
-                if err == "found" then
-                    -- FIXME we are having a small race condition here. we
-                    -- may exceed the "max" threshold if the threshold is
-                    -- small enough.
-                    conn, err = dict:incr(key, 1)
-                    if not conn then
-                        return nil, err
-                    end
-
-                else
-                    return nil, err
-                end
-            else
-                conn = 1
+            local err
+            conn, err = incr_or_init(key, dict)
+            if not conn then
+                return nil, err
             end
 
             self.committed = true
