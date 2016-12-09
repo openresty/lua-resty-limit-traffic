@@ -61,11 +61,11 @@ function _M.incoming(self, key, commit)
                 local err
                 conn, err = dict:incr(key, 1)
                 if not conn then
-                    if err == "not found" then
-                        dict:add(key, 1)
-                    else
+                    if err ~= "not found" then
                         return nil, err
                     end
+
+                    dict:add(key, 1)
                 end
 
                 self.committed = true
