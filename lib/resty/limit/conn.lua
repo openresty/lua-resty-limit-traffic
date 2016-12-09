@@ -56,16 +56,10 @@ function _M.incoming(self, key, commit)
             end
 
             if commit then
-                -- FIXME we really need dict:incr_or_init() to avoid race
-                -- conditions here.
                 local err
-                conn, err = dict:incr(key, 1)
+                conn, err = dict:incr(key, 1, 0)
                 if not conn then
-                    if err ~= "not found" then
-                        return nil, err
-                    end
-
-                    dict:add(key, 1)
+                    return nil, err
                 end
 
                 self.committed = true
@@ -92,24 +86,10 @@ function _M.incoming(self, key, commit)
 
     else
         if commit then
-            -- FIXME we should use dict:incr_or_init() to simplify the twisted
-            -- code snippet below
-            local ok, err = dict:add(key, 1)
-            if not ok then
-                if err == "found" then
-                    -- FIXME we are having a small race condition here. we
-                    -- may exceed the "max" threshold if the threshold is
-                    -- small enough.
-                    conn, err = dict:incr(key, 1)
-                    if not conn then
-                        return nil, err
-                    end
-
-                else
-                    return nil, err
-                end
-            else
-                conn = 1
+            local err
+            conn, err = dict:incr(key, 1, 0)
+            if not conn then
+                return nil, err
             end
 
             self.committed = true
