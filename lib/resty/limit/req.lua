@@ -17,6 +17,7 @@ local abs = math.abs
 local tonumber = tonumber
 local type = type
 local assert = assert
+local max = math.max
 
 
 -- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
@@ -91,12 +92,7 @@ function _M.incoming(self, key, commit)
         -- we do not handle changing rate values specifically. the excess value
         -- can get automatically adjusted by the following formula with new rate
         -- values rather quickly anyway.
-        excess = tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000
-
-        if excess < 0 then
-            -- ngx.log(ngx.WARN, "excess: ", excess / 1000)
-            excess = 0
-        end
+        excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000, 0)
 
         -- print("excess: ", excess)
 
@@ -134,10 +130,7 @@ function _M.uncommit(self, key)
 
     local rec = ffi_cast(const_rec_ptr_type, v)
 
-    local excess = tonumber(rec.excess) - 1000
-    if excess < 0 then
-        excess = 0
-    end
+    local excess = max(tonumber(rec.excess) - 1000, 0)
 
     rec_cdata.excess = excess
     rec_cdata.last = rec.last
