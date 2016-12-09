@@ -4,6 +4,9 @@
 -- (like instances of the resty.limit.req and resty.limit.conn classes).
 
 
+local max = math.max
+
+
 local _M = {
     _VERSION = '0.01'
 }
@@ -43,9 +46,8 @@ function _M.combine(limiters, keys, states)
         if states then
             states[i] = err
         end
-        if delay > max_delay then
-            max_delay = delay
-        end
+
+        max_delay = max(max_delay, delay)
     end
     return max_delay
 end
