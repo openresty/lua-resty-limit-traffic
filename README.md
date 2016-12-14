@@ -281,10 +281,12 @@ or right before issuing backend requests.
 Installation
 ============
 
-You need to
-ensure you are using at least OpenResty 1.11.2.1 or a custom nginx build including ngx_lua 0.10.6. Also, You need to configure
+This library is enabled by default in [OpenResty](https://openresty.org/) 1.11.2.2+.
+
+If you have to install this library manually,
+then ensure you are using at least OpenResty 1.11.2.1 or a custom nginx build including ngx_lua 0.10.6+. Also, You need to configure
 the [lua_package_path](https://github.com/openresty/lua-nginx-module#lua_package_path) directive to
-add the path of your lua-resty-limit-traffic source tree to ngx_lua's Lua module search path, as in
+add the path of your `lua-resty-limit-traffic` source tree to ngx_lua's Lua module search path, as in
 
 ```nginx
 # nginx.conf
