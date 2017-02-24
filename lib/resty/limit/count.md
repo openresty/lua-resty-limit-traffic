@@ -117,6 +117,14 @@ this method returns an negative number representing exceeded count.
 4. If an error occurred (like failures when accessing the `lua_shared_dict` shm zone backing
 the current object), then this method returns `nil` and a string describing the error.
 
+uncommit
+--------
+
+**syntax:** `remaining = obj:uncommit(key)`
+
+Undo the commit of the count of incoming call. This method is mainly for excluding specified requests from counting
+against limit like conditional requests.
+
 [Back to TOC](#table-of-contents)
 
 Limiting Granularity

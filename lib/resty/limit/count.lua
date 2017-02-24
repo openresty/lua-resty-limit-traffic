@@ -111,4 +111,29 @@ function _M.incoming(self, key, commit)
     return remaining, reset
 end
 
+-- uncommit remaining and return remaining value
+function _M.uncommit(self, key)
+    assert(key)
+    local dict  = self.dict
+    local limit = self.limit
+
+    local v = dict:get(key)
+    if not v then
+        return nil, "not found"
+    end
+
+    if type(v) ~= "string" or #v ~= rec_size then
+        return nil, "shdict abused by other users"
+    end
+
+    local rec = ffi_cast(const_rec_ptr_type, v)
+    local remaining = tonumber(rec.remaining) + 1
+
+    rec_cdata.remaining = min(remaining, limit)
+    rec_cdata.reset = rec.reset
+
+    dict:set(key, ffi_str(rec_cdata, rec_size))
+    return rec_cdata.remaining
+end
+
 return _M
