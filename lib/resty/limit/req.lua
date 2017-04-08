@@ -92,7 +92,8 @@ function _M.incoming(self, key, commit)
         -- we do not handle changing rate values specifically. the excess value
         -- can get automatically adjusted by the following formula with new rate
         -- values rather quickly anyway.
-        excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000, 0)
+        excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000,
+                     0)
 
         -- print("excess: ", excess)
 
