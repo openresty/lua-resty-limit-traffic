@@ -48,57 +48,36 @@ function _M.incoming(self, key, commit)
 
     self.committed = false
 
-    local conn = dict:get(key)
-    if conn then
-        if conn >= max then
-            if conn >= max + self.burst then
-                return nil, "rejected"
-            end
-
-            if commit then
-                local err
-                conn, err = dict:incr(key, 1, 0)
-                if not conn then
-                    return nil, err
-                end
-
-                self.committed = true
-            else
-                conn = conn + 1
-            end
-
-            -- make the exessive connections wait
-            return self.unit_delay * floor((conn - 1) / max), conn
+    local conn, err
+    if commit then
+        conn, err = dict:incr(key, 1, 0)
+        if not conn then
+            return nil, err
         end
 
-        if commit then
-            -- FIXME: we should use incr_or_init here.
-            local new_conn, err = dict:incr(key, 1)
-            if not new_conn then
-                return nil, err
-            end
-
-            self.committed = true
-            return 0, new_conn
-        end
-
-        return 0, conn + 1
-
-    else
-        if commit then
-            local err
-            conn, err = dict:incr(key, 1, 0)
+        if conn > max + self.burst then
+            conn, err = dict:incr(key, -1, conn)
             if not conn then
                 return nil, err
             end
+            return nil, "rejected"
+        end
+        self.committed = true
 
-            self.committed = true
-        else
-            conn = 1
+    else
+        conn = (dict:get(key) or 0) + 1
+        if conn > max + self.burst then
+            return nil, "rejected"
         end
     end
 
-    return 0, conn  -- we return a 0 delay by default
+    if conn > max then
+        -- make the exessive connections wait
+        return self.unit_delay * floor((conn - 1) / max), conn
+    end
+
+    -- we return a 0 delay by default
+    return 0, conn
 end
 
 
