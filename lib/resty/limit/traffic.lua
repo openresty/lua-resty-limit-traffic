@@ -8,7 +8,7 @@ local max = math.max
 
 
 local _M = {
-    _VERSION = '0.03'
+    _VERSION = '0.04'
 }
 
 
