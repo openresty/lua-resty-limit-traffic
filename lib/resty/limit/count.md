@@ -96,7 +96,7 @@ This method takes the following arguments:
 
 incoming
 --------
-**syntax:** `delay, err = obj:incoming(key, commit)`
+**syntax:** `delay, err, reset = obj:incoming(key, commit)`
 
 Fires a new request incoming event and calculates the delay needed (if any) for the current request
 upon the specified key or whether the user should reject it immediately.
@@ -116,11 +116,13 @@ in the shm zone backing the current object; otherwise it would just be a "dry ru
 The return values depend on the following cases:
 
 1. If the request does not exceed the `count` value specified in the [new](#new) method, then
-this method returns remaining count of allowed requests.
-2. If the request exceeds the `count` limit specified in the [new](#new) method then
-this method returns an negative number representing exceeded count.
+this method returns `0` as the delay as well as remaining count of allowed requests at the current time (as the 2nd return value).
 
-    In addition, this method also returns a second return value indicating the time (Epoch) to reset given count.
+2. If the request exceeds the `count` limit specified in the [new](#new) method then
+this method returns `nil` and the error string `"rejected"`.
+
+3. In addition, like the previous two cases, this method
+also returns a third return value indicating the next time to reset the `count` value. This 3nd return value can be used to monitor.
 
 4. If an error occurred (like failures when accessing the `lua_shared_dict` shm zone backing
 the current object), then this method returns `nil` and a string describing the error.
@@ -164,6 +166,26 @@ Author
 ======
 
 Ke Zhu <kzhu@us.ibm.com>.
+Ming Wen <moonbingbing@gmail.com>
+
+[Back to TOC](#table-of-contents)
+
+Copyright and License
+=====================
+
+This module is licensed under the BSD license.
+
+Copyright (C) 2016-2017, by Yichun "agentzh" Zhang, OpenResty Inc.
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [Back to TOC](#table-of-contents)
 

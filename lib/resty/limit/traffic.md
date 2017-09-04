@@ -260,6 +260,7 @@ See Also
 ========
 * module [resty.limit.req](./req.md)
 * module [resty.limit.conn](./conn.md)
+* module [resty.limit.count](./count.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
 * OpenResty: https://openresty.org/
