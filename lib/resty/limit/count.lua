@@ -6,9 +6,9 @@ local math = require "math"
 local ngx_shared = ngx.shared
 local ngx_time = ngx.time
 local setmetatable = setmetatable
+local min = math.min
 local ffi_cast = ffi.cast
 local ffi_str = ffi.string
-local abs = math.abs
 local tonumber = tonumber
 local type = type
 local assert = assert
@@ -16,7 +16,7 @@ local assert = assert
 -- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
 -- hash-typed values as in redis.
 ffi.cdef[[
-    struct lua_resty_limit_ghe_req_rec {
+    struct lua_resty_limit_count_rec {
         unsigned short       remaining;  /* number of requests remaining */
         uint64_t             reset;  /* time at which the window resets  */
         /* integer value, 1 corresponds to 1 second */
@@ -81,20 +81,20 @@ function _M.incoming(self, key, commit)
             return nil, "shdict abused by other users"
         end
         local rec = ffi_cast(const_rec_ptr_type, v)
-        local ttl = tonumber(rec.reset) - now
+        reset = tonumber(rec.reset)
+        local ttl = reset - now
 
         -- print("ttl: ", ttl, "s")
 
         if ttl > 0 then
-            reset = tonumber(rec.reset)
             remaining = tonumber(rec.remaining) - 1
         else
             reset = now + window
-            remaining = limit
+            remaining = limit - 1
         end
 
         if remaining < 0 then
-            return -1, reset
+            return nil, "rejected", reset
         end
     else
         remaining = limit - 1
@@ -108,7 +108,7 @@ function _M.incoming(self, key, commit)
     end
 
     -- return remaining and time to reset
-    return remaining, reset
+    return 0, remaining, reset
 end
 
 -- uncommit remaining and return remaining value
