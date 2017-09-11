@@ -42,7 +42,7 @@ http {
                 if not delay then
                     if err == "rejected" then
                         ngx.header["X-RateLimit-Limit"] = "5000"
-                        gx.header["X-RateLimit-Reset"] = reset
+                        ngx.header["X-RateLimit-Reset"] = reset
                         ngx.header["X-RateLimit-Remaining"] = 0
                         return ngx.exit(503)
                     end
