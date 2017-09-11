@@ -1,33 +1,9 @@
 -- implement GitHub request rate limiting: https://developer.github.com/v3/#rate-limiting
 
-local ffi = require "ffi"
-local math = require "math"
-
 local ngx_shared = ngx.shared
 local ngx_time = ngx.time
 local setmetatable = setmetatable
-local min = math.min
-local ffi_cast = ffi.cast
-local ffi_str = ffi.string
-local tonumber = tonumber
-local type = type
 local assert = assert
-
--- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
--- hash-typed values as in redis.
-ffi.cdef[[
-    struct lua_resty_limit_count_rec {
-        unsigned short       remaining;  /* number of requests remaining */
-        uint64_t             reset;  /* time at which the window resets  */
-        /* integer value, 1 corresponds to 1 second */
-    };
-]]
-local const_rec_ptr_type = ffi.typeof("const struct lua_resty_limit_count_rec*")
-local rec_size = ffi.sizeof("struct lua_resty_limit_count_rec")
-
--- we can share the cdata here since we only need it temporarily for
--- serialization inside the shared dict:
-local rec_cdata = ffi.new("struct lua_resty_limit_count_rec")
 
 
 local _M = {
@@ -70,70 +46,44 @@ function _M.incoming(self, key, commit)
     local window = self.window
     local now = ngx_time()
 
-    local remaining
-    local reset
-
-    -- it's important to anchor the string value for the read-only pointer
-    -- cdata:
-    local v = dict:get(key)
-    if v then
-        if type(v) ~= "string" or #v ~= rec_size then
-            return nil, "shdict abused by other users"
-        end
-        local rec = ffi_cast(const_rec_ptr_type, v)
-        reset = tonumber(rec.reset)
-        local ttl = reset - now
-
-        -- print("ttl: ", ttl, "s")
-
-        if ttl > 0 then
-            remaining = tonumber(rec.remaining) - 1
-        else
-            reset = now + window
-            remaining = limit - 1
-        end
-
+    local remaining, reset = dict:get(key)
+    if remaining then
+        remaining = remaining - 1
         if remaining < 0 then
             return nil, "rejected", reset
         end
+        if commit then
+            local new_val, err = dict:incr(key, -1)
+            if not new_val then
+                return nil, err, reset
+            end
+        end
+
     else
         remaining = limit - 1
         reset = now + window
+        if commit then
+            local success, err, forcible = dict:set(key, remaining, window, reset)
+            if not success then
+                return nil, err, reset
+            end
+        end
     end
 
-    if commit then
-        rec_cdata.remaining = remaining
-        rec_cdata.reset = reset
-        dict:set(key, ffi_str(rec_cdata, rec_size))
-    end
-
-    -- return remaining and time to reset
     return 0, remaining, reset
 end
 
 -- uncommit remaining and return remaining value
 function _M.uncommit(self, key)
     assert(key)
-    local dict  = self.dict
-    local limit = self.limit
+    local dict = self.dict
 
-    local v = dict:get(key)
-    if not v then
-        return nil, "not found"
+    local remaining, err = dict:incr(key, 1)
+    if not remaining then
+        return nil, err
     end
 
-    if type(v) ~= "string" or #v ~= rec_size then
-        return nil, "shdict abused by other users"
-    end
-
-    local rec = ffi_cast(const_rec_ptr_type, v)
-    local remaining = tonumber(rec.remaining) + 1
-
-    rec_cdata.remaining = min(remaining, limit)
-    rec_cdata.reset = rec.reset
-
-    dict:set(key, ffi_str(rec_cdata, rec_size))
-    return rec_cdata.remaining
+    return remaining
 end
 
 return _M
