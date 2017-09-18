@@ -1,19 +1,19 @@
 -- implement GitHub request rate limiting: https://developer.github.com/v3/#rate-limiting
 
 local ngx_shared = ngx.shared
-local ngx_time = ngx.time
 local setmetatable = setmetatable
 local assert = assert
 
 
 local _M = {
-    _VERSION = 'alpha'
+   _VERSION = '0.01'
 }
 
 
 local mt = {
     __index = _M
 }
+
 
 -- the "limit" argument controls number of request allowed in a time window.
 -- time "window" argument controls the time window in seconds.
@@ -35,43 +35,36 @@ function _M.new(dict_name, limit, window)
 end
 
 
--- sees an new incoming event
--- the "commit" argument controls whether should we record the event in shm.
--- FIXME we have a (small) race-condition window between dict:get() and
--- dict:set() across multiple nginx worker processes. The size of the
--- window is proportional to the number of workers.
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
-    local now = ngx_time()
 
-    local remaining, reset = dict:get(key)
-    if remaining then
-        remaining = remaining - 1
-        if remaining < 0 then
-            return nil, "rejected", reset
+    local remaining, err
+
+    if commit then
+        remaining, err = dict:incr(key, -1, limit)
+        if not remaining then
+            return nil, err
         end
-        if commit then
-            local new_val, err = dict:incr(key, -1)
-            if not new_val then
-                return nil, err, reset
+        if remaining == limit - 1 then
+            local ok, err = dict:expire(key, window)
+            if not ok then
+                return nil, err
             end
         end
 
     else
-        remaining = limit - 1
-        reset = now + window
-        if commit then
-            local success, err, forcible = dict:set(key, remaining, window, reset)
-            if not success then
-                return nil, err, reset
-            end
-        end
+        remaining = (dict:get(key) or 0) - 1
     end
 
-    return 0, remaining, reset
+    if remaining < 0 then
+        return nil, "rejected"
+    end
+
+    return 0, remaining
 end
+
 
 -- uncommit remaining and return remaining value
 function _M.uncommit(self, key)
@@ -85,5 +78,6 @@ function _M.uncommit(self, key)
 
     return remaining
 end
+
 
 return _M

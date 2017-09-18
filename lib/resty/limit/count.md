@@ -23,6 +23,10 @@ Synopsis
 http {
     lua_shared_dict my_limit_count_store 100m;
 
+    init_by_lua_block {
+        require "resty.core"
+    }
+
     server {
         location / {
             access_by_lua_block {
@@ -37,12 +41,11 @@ http {
 
                 -- use the Authorization header as the limiting key
                 local key = ngx.req.get_headers()["Authorization"] or "public"
-                local delay, err, reset = lim:incoming(key, true)
+                local delay, err = lim:incoming(key, true)
 
                 if not delay then
                     if err == "rejected" then
                         ngx.header["X-RateLimit-Limit"] = "5000"
-                        ngx.header["X-RateLimit-Reset"] = reset
                         ngx.header["X-RateLimit-Remaining"] = 0
                         return ngx.exit(503)
                     end
@@ -55,7 +58,6 @@ http {
                 local remaining = err
 
                 ngx.header["X-RateLimit-Limit"] = "5000"
-                ngx.header["X-RateLimit-Reset"] = reset
                 ngx.header["X-RateLimit-Remaining"] = remaining
             }
         }
@@ -71,6 +73,14 @@ rate by a fixed number of requests in given time window.
 
 This Lua module's implementation is similar to [GitHub API Rate Limiting](https://developer.github.com/v3/#rate-limiting) But this Lua
 module is flexible in that it can be configured with different rate.
+
+This module depands on [lua-resty-core](https://github.com/openresty/lua-resty-core), so you should enable it like the following codes:
+
+```nginx
+init_by_lua_block {
+        require "resty.core"
+    }
+```
 
 Methods
 =======
@@ -88,6 +98,7 @@ This method takes the following arguments:
 * `shdict_name` is the name of the [lua_shared_dict](https://github.com/openresty/lua-nginx-module#lua_shared_dict) shm zone.
 
     It is best practice to use separate shm zones for different kinds of limiters.
+
 * `count` is the specified number of requests threshold.
 
 * `time_window` is the time window in second before the request count is reset.
@@ -96,7 +107,7 @@ This method takes the following arguments:
 
 incoming
 --------
-**syntax:** `delay, err, reset = obj:incoming(key, commit)`
+**syntax:** `delay, err = obj:incoming(key, commit)`
 
 Fires a new request incoming event and calculates the delay needed (if any) for the current request
 upon the specified key or whether the user should reject it immediately.
@@ -121,10 +132,7 @@ this method returns `0` as the delay as well as remaining count of allowed reque
 2. If the request exceeds the `count` limit specified in the [new](#new) method then
 this method returns `nil` and the error string `"rejected"`.
 
-3. In addition, like the previous two cases, this method
-also returns a third return value indicating the next time to reset the `count` value. This 3nd return value can be used to monitor.
-
-4. If an error occurred (like failures when accessing the `lua_shared_dict` shm zone backing
+3. If an error occurred (like failures when accessing the `lua_shared_dict` shm zone backing
 the current object), then this method returns `nil` and a string describing the error.
 
 uncommit

@@ -14,6 +14,11 @@ my $pwd = cwd();
 
 our $HttpConfig = <<_EOC_;
     lua_package_path "$pwd/lib/?.lua;;";
+    init_by_lua_block {
+        local v = require "jit.v"
+        -- v.on("/tmp/a.dump")
+        require "resty.core"
+    }
 _EOC_
 
 no_long_string();
