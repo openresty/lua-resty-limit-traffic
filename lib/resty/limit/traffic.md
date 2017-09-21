@@ -112,7 +112,7 @@ client address. This module can take into account all the limiters involved with
 introducing any extra delays for the current request.
 
 The concrete limiters supplied can be an instance of the [resty.limit.req](./req.md) class
-or an instance of the [resty.limit.conn](./conn.md) class, or an instance of any user class
+or an instance of the [resty.limit.conn](./conn.md) class, or an instance of the [resty.limit.count](./count.md) class, or an instance of any user class
 which has a compatible API (see the [combine](#combine) class method for more details).
 
 Methods
@@ -134,7 +134,8 @@ This method takes the following parameters:
 
 * `limiters` is an array-shaped Lua table that holds all the concrete limiter objects
 (for example, instances of the [resty.limit.req](lib/resty/limit/req.md) and/or
-[resty.limit.conn](lib/resty/limit/conn.md) classes or other compatible objects).
+[resty.limit.conn](lib/resty/limit/conn.md) and/or
+[resty.limit.count](lib/resty/limit/count.md) classes or other compatible objects).
 
     The limiter object must have a method named `incoming` which takes two parameters,
 `key` and `commit`, just like the [resty.limit.req](lib/resty/limit/req.md) objects.
@@ -259,6 +260,7 @@ See Also
 ========
 * module [resty.limit.req](./req.md)
 * module [resty.limit.conn](./conn.md)
+* module [resty.limit.count](./count.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
 * OpenResty: https://openresty.org/

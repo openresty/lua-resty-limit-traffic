@@ -13,17 +13,19 @@ env:
   global:
     - JOBS=3
     - NGX_BUILD_JOBS=$JOBS
-    - LUAJIT_LIB=/usr/lib64/libluajit-5.1.so
-    - LUAJIT_INC=/usr/include/luajit-2.0
-    - LUA_INCLUDE_DIR=/usr/include/luajit-2.0
+    - LUAJIT_PREFIX=/opt/luajit21
+    - LUAJIT_LIB=$LUAJIT_PREFIX/lib
+    - LUAJIT_INC=$LUAJIT_PREFIX/include/luajit-2.1
+    - LUA_INCLUDE_DIR=$LUAJIT_INC
     - LUA_CMODULE_DIR=/lib
     - TEST_NGINX_MYSQL_PATH=/var/run/mysqld/mysqld.sock
+    - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.006
   matrix:
     - NGINX_VERSION=1.9.15
 
 before_install:
-  - sudo apt-get install -qq -y axel cpanminus libluajit-5.1-dev > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo apt-get install -qq -y axel cpanminus > build.log 2>&1 || (cat build.log && exit 1)
 
 install:
   - git clone https://github.com/openresty/test-nginx.git
@@ -32,11 +34,20 @@ install:
   - git clone https://github.com/openresty/lua-cjson.git
   - git clone https://github.com/openresty/lua-nginx-module.git ../lua-nginx-module
   - git clone https://github.com/openresty/no-pool-nginx.git ../no-pool-nginx
+  - git clone https://github.com/openresty/lua-resty-lrucache.git
+  - git clone https://github.com/openresty/lua-resty-core.git
+  - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
 
 script:
   - cd test-nginx && (sudo cpanm . > build.log 2>&1 || (cat build.log && exit 1)) && cd ..
+  - cd luajit2/
+  - make -j$JOBS CCDEBUG=-g Q= PREFIX=$LUAJIT_PREFIX CC=$CC XCFLAGS='-DLUA_USE_APICHECK -DLUA_USE_ASSERT -msse4.2' > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo make install PREFIX=$LUAJIT_PREFIX > build.log 2>&1 || (cat build.log && exit 1)
+  - cd ..
+  - cd lua-resty-lrucache && sudo make DESTDIR=$LUAJIT_PREFIX LUA_LIB_DIR=/share/lua/5.1 install && cd ..
   - cd lua-cjson && make && sudo PATH=$PATH make install && cd ..
   - export PATH=$PWD/work/nginx/sbin:$PWD/nginx-devel-utils:$PATH
   - ngx-build $NGINX_VERSION --with-ipv6 --with-http_realip_module --with-http_ssl_module --add-module=../lua-nginx-module --with-debug > build.log 2>&1 || (cat build.log && exit 1)
+  - cd lua-resty-core && make && sudo PATH=$PATH make LUA_LIB_DIR=/opt/luajit21/share/lua/5.1 install && cd ..
   - prove -r t
 
