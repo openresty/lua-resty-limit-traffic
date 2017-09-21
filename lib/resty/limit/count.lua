@@ -40,17 +40,30 @@ function _M.incoming(self, key, commit)
     local limit = self.limit
     local window = self.window
 
-    local remaining, err
+    local remaining, ok, err
 
     if commit then
         remaining, err = dict:incr(key, -1, limit)
         if not remaining then
             return nil, err
         end
+
         if remaining == limit - 1 then
-            local ok, err = dict:expire(key, window)
+            ok, err = dict:expire(key, window)
             if not ok then
-                return nil, err
+                if err == "not found" then
+                    remaining, err = dict:incr(key, -1, limit)
+                    if not remaining then
+                        return nil, err
+                    end
+                    ok, err = dict:expire(key, window)
+                    if not ok then
+                        return nil, err
+                    end
+
+                else
+                    return nil, err
+                end
             end
         end
 
@@ -73,7 +86,11 @@ function _M.uncommit(self, key)
 
     local remaining, err = dict:incr(key, 1)
     if not remaining then
-        return nil, err
+        if err == "not found" then
+            remaining = dict:get(key)
+        else
+            return nil, err
+        end
     end
 
     return remaining
