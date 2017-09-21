@@ -56,6 +56,7 @@ function _M.incoming(self, key, commit)
                     if not remaining then
                         return nil, err
                     end
+
                     ok, err = dict:expire(key, window)
                     if not ok then
                         return nil, err
@@ -68,7 +69,7 @@ function _M.incoming(self, key, commit)
         end
 
     else
-        remaining = (dict:get(key) or 0) - 1
+        remaining = (dict:get(key) or limit) - 1
     end
 
     if remaining < 0 then
@@ -83,11 +84,12 @@ end
 function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
+    local limit = self.limit
 
     local remaining, err = dict:incr(key, 1)
     if not remaining then
         if err == "not found" then
-            remaining = dict:get(key)
+            remaining = limit
         else
             return nil, err
         end

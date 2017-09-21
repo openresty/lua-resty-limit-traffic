@@ -12,6 +12,7 @@ Table of Contents
 * [Methods](#methods)
     * [new](#new)
     * [incoming](#incoming)
+    * [uncommit](#uncommit)
 * [Installation](#installation)
 * [Author](#author)
 * [See Also](#see-also)
@@ -72,14 +73,14 @@ This module provides APIs to help the OpenResty/ngx_lua user programmers limit r
 rate by a fixed number of requests in given time window.
 
 This Lua module's implementation is similar to [GitHub API Rate Limiting](https://developer.github.com/v3/#rate-limiting) But this Lua
-module is flexible in that it can be configured with different rate.
+module is flexible in that it can be configured with different rates and window sizes.
 
-This module depands on [lua-resty-core](https://github.com/openresty/lua-resty-core), so you should enable it like the following codes:
+This module depends on [lua-resty-core](https://github.com/openresty/lua-resty-core), you should enable it like so:
 
 ```nginx
 init_by_lua_block {
         require "resty.core"
-    }
+}
 ```
 
 Methods
@@ -101,7 +102,7 @@ This method takes the following arguments:
 
 * `count` is the specified number of requests threshold.
 
-* `time_window` is the time window in second before the request count is reset.
+* `time_window` is the time window in seconds before the request count is reset.
 
 [Back to TOC](#table-of-contents)
 
@@ -127,7 +128,7 @@ in the shm zone backing the current object; otherwise it would just be a "dry ru
 The return values depend on the following cases:
 
 1. If the request does not exceed the `count` value specified in the [new](#new) method, then
-this method returns `0` as the delay as well as remaining count of allowed requests at the current time (as the 2nd return value).
+this method returns `0` as the delay and the remaining count of allowed requests at the current time (as the 2nd return value).
 
 2. If the request exceeds the `count` limit specified in the [new](#new) method then
 this method returns `nil` and the error string `"rejected"`.
@@ -137,8 +138,7 @@ the current object), then this method returns `nil` and a string describing the 
 
 uncommit
 --------
-
-**syntax:** `remaining = obj:uncommit(key)`
+**syntax:** `remaining, err = obj:uncommit(key)`
 
 Undo the commit of the count of incoming call. This method is mainly for excluding specified requests from counting
 against limit like conditional requests.

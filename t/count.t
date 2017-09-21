@@ -31,7 +31,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_count = require "resty.limit.count"
             ngx.shared.store:flush_all()
             local lim = limit_count.new("store", 10, 100)
@@ -45,7 +45,7 @@ __DATA__
                     ngx.say("remaining: ", remaining)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -72,7 +72,7 @@ rejected
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_count = require "resty.limit.count"
             ngx.shared.store:flush_all()
             local lim = limit_count.new("store", 1, 10)
@@ -107,7 +107,7 @@ rejected
                 local remaining4 = err4
                 ngx.say("remaining4: ", remaining4)
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -126,7 +126,7 @@ rejected
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_count = require "resty.limit.count"
             ngx.shared.store:flush_all()
             local lim = limit_count.new("store", 1, 1)
@@ -150,7 +150,7 @@ rejected
                 end
                 ngx.sleep(1)
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -169,14 +169,14 @@ rejected
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_count = require "resty.limit.count"
             ngx.shared.store:flush_all()
             local lim = limit_count.new("store", 5, 10)
             local begin = ngx.time()
 
             for i = 1, 4 do
-                local delay, err = lim:incoming("foo", i < 3 and true or false)
+                local delay, err = lim:incoming("foo", i < 3)
                 if not delay then
                     ngx.say(err)
                 else
@@ -184,7 +184,7 @@ rejected
                     ngx.say("remaining: ", remaining)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -203,7 +203,7 @@ remaining: 2
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_count = require "resty.limit.count"
             local lim = limit_count.new("store", 2, 10)
             ngx.shared.store:flush_all()
@@ -221,7 +221,7 @@ remaining: 2
                     ngx.say("failed to uncommit: ", err)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t

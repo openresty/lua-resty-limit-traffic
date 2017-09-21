@@ -37,7 +37,7 @@ $::HttpConfig
 "
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
@@ -69,7 +69,7 @@ $::HttpConfig
                     ngx.sleep(1)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -98,7 +98,7 @@ $::HttpConfig
 "
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
@@ -128,7 +128,7 @@ $::HttpConfig
                     ngx.sleep(1)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t
@@ -157,7 +157,7 @@ $::HttpConfig
 "
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
@@ -186,11 +186,8 @@ $::HttpConfig
                             ", conn committed: ", lim3:is_committed(),
                             ", states: ", table.concat(states, ", "))
                 end
-                if i == 4 then
-                    ngx.sleep(1)
-                end
             end
-        ';
+        }
     }
 --- request
     GET /t
