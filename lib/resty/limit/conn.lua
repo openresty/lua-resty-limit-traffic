@@ -14,7 +14,7 @@ local assert = assert
 
 
 local _M = {
-    _VERSION = '0.04'
+    _VERSION = '0.05'
 }
 
 
