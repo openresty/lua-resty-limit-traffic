@@ -56,7 +56,7 @@ function _M.incoming(self, key, commit)
         end
 
         if conn > max + self.burst then
-            conn, err = dict:incr(key, -1, conn)
+            conn, err = dict:incr(key, -1)
             if not conn then
                 return nil, err
             end
