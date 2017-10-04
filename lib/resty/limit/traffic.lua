@@ -40,7 +40,7 @@ function _M.combine(limiters, keys, states)
         if not delay then
             for j = 1, i - 1 do
                 -- we intentionally ignore any errors returned below.
-                lim:uncommit(keys[j])
+                limiters[j]:uncommit(keys[j])
             end
             return nil, err
         end
