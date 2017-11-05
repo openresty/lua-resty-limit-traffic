@@ -14,7 +14,9 @@ Table of Contents
     * [incoming](#incoming)
     * [uncommit](#uncommit)
 * [Limiting Granularity](#limiting-granularity)
-* [Installation](#installation)
+* [Community](#community)
+    * [English Mailing List](#english-mailing-list)
+    * [Chinese Mailing List](#chinese-mailing-list)
 * [Bugs and Patches](#bugs-and-patches)
 * [Authors](#authors)
 * [Copyright and License](#copyright-and-license)
@@ -124,7 +126,7 @@ This method accepts the following arguments:
 as the key so that we limit rate per host name. Otherwise, we can also use the authorization header value as the
 key so that we can set a rate for individual user.
 
-    Please note that this module does not prefix nor suffix the user key so it is the user's responsibility to ensure the key is unique in the `lua_shared_dict` shm zone).
+    Please note that this module does not prefix nor suffix the user key so it is the user's responsibility to ensure the key is unique in the `lua_shared_dict` shm zone.
 * `commit` is a boolean value. If set to `true`, the object will actually record the event
 in the shm zone backing the current object; otherwise it would just be a "dry run" (which is the default).
 
@@ -166,12 +168,32 @@ Please see [library installation instructions](../../../README.md#installation).
 
 [Back to TOC](#table-of-contents)
 
+Community
+=========
+
+[Back to TOC](#table-of-contents)
+
+English Mailing List
+--------------------
+
+The [openresty-en](https://groups.google.com/group/openresty-en) mailing list is for English speakers.
+
+[Back to TOC](#table-of-contents)
+
+Chinese Mailing List
+--------------------
+
+The [openresty](https://groups.google.com/group/openresty) mailing list is for Chinese speakers.
+
+[Back to TOC](#table-of-contents)
+
 Bugs and Patches
 ================
 
 Please report bugs or submit patches by
 
 1. creating a ticket on the [GitHub Issue Tracker](https://github.com/openresty/lua-resty-limit-traffic/issues),
+1. or posting to the [OpenResty community](#community).
 
 [Back to TOC](#table-of-contents)
 
@@ -204,7 +226,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 See Also
 ========
+* module [resty.limit.req](./req.md)
 * module [resty.limit.conn](./conn.md)
+* module [resty.limit.rate](./rate.md)
 * module [resty.limit.traffic](./traffic.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module

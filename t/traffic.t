@@ -13,7 +13,7 @@ plan tests => repeat_each() * (blocks() * 4);
 my $pwd = cwd();
 
 our $HttpConfig = <<_EOC_;
-    lua_package_path "$pwd/../lua-resty-core/lib/?.lua;../lua-resty-lrucache/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_package_path "$pwd/../lua-resty-lock/lib/?.lua;$pwd/../lua-resty-core/lib/?.lua;../lua-resty-lrucache/lib/?.lua;$pwd/lib/?.lua;;";
     init_by_lua_block {
         local v = require "jit.v"
         -- v.on("/tmp/a.dump")
@@ -34,6 +34,7 @@ $::HttpConfig
     lua_shared_dict req 1m;
     lua_shared_dict conn 1m;
     lua_shared_dict count 1m;
+    lua_shared_dict rate 1m;
 "
 --- config
     location = /t {
@@ -41,20 +42,23 @@ $::HttpConfig
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
+            local limit_rate = require "resty.limit.rate"
             local limit_traffic = require "resty.limit.traffic"
 
             local lim1 = limit_req.new("req", 3, 2)
             local lim2 = limit_req.new("req", 2, 3)
             local lim3 = limit_conn.new("conn", 4, 1, 2)
             local lim4 = limit_count.new("count", 10, 100)
+            local lim5 = limit_rate.new("rate", 500, 4)
 
-            local limiters = {lim1, lim2, lim3, lim4}
+            local limiters = {lim1, lim2, lim3, lim4, lim5}
 
             ngx.shared.req:flush_all()
             ngx.shared.conn:flush_all()
             ngx.shared.count:flush_all()
+            ngx.shared.rate:flush_all()
 
-            local keys = {"foo", "bar", "foo", "bar"}
+            local keys = {"foo", "bar", "foo", "bar", "foo"}
             local states = {}
             for i = 1, 6 do
                 local delay, err = limit_traffic.combine(limiters, keys, states)
@@ -74,12 +78,12 @@ $::HttpConfig
 --- request
     GET /t
 --- response_body_like eval
-qr/^1: 0, conn committed: true, states: 0, 0, 1, 9
-2: 0\.5, conn committed: true, states: 1, 1, 2, 8
-3: 1, conn committed: true, states: 2, 2, 3, 7
+qr/^1: 0, conn committed: true, states: 0, 0, 1, 9, 3
+2: 0\.5, conn committed: true, states: 1, 1, 2, 8, 2
+3: 1, conn committed: true, states: 2, 2, 3, 7, 1
 failed to limit traffic: rejected
-5: 0\.(?:4[6-9]|5|5[0-4])\d*, conn committed: true, states: 0, (?:1|1\.0[0-4]\d*|0\.9[6-9]\d*), 4, 6
-6: 2, conn committed: true, states: 1, (?:2|2\.0[0-4]\d*|1\.9[6-9]\d*), 5, 5
+5: 0\.(?:4[6-9]|5|5[0-4])\d*, conn committed: true, states: 0, (?:1|1\.0[0-4]\d*|0\.9[6-9]\d*), 4, 6, 2
+6: 2, conn committed: true, states: 1, (?:2|2\.0[0-4]\d*|1\.9[6-9]\d*), 5, 5, 1
 $/s
 --- no_error_log
 [error]
@@ -95,6 +99,7 @@ $::HttpConfig
     lua_shared_dict req 1m;
     lua_shared_dict conn 1m;
     lua_shared_dict count 1m;
+    lua_shared_dict rate 1m;
 "
 --- config
     location = /t {
@@ -102,20 +107,23 @@ $::HttpConfig
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
+            local limit_rate = require "resty.limit.rate"
             local limit_traffic = require "resty.limit.traffic"
 
             local lim1 = limit_req.new("req", 3, 2)
             local lim2 = limit_req.new("req", 2, 3)
             local lim3 = limit_conn.new("conn", 4, 1, 2)
             local lim4 = limit_count.new("count", 10, 100)
+            local lim5 = limit_rate.new("rate", 500, 4)
 
-            local limiters = {lim1, lim2, lim3, lim4}
+            local limiters = {lim1, lim2, lim3, lim4, lim5}
 
             ngx.shared.req:flush_all()
             ngx.shared.conn:flush_all()
             ngx.shared.count:flush_all()
+            ngx.shared.rate:flush_all()
 
-            local keys = {"foo", "bar", "foo", "bar"}
+            local keys = {"foo", "bar", "foo", "bar", "foo"}
             for i = 1, 6 do
                 local delay, err = limit_traffic.combine(limiters, keys)
                 if not delay then
@@ -154,6 +162,7 @@ $::HttpConfig
     lua_shared_dict req 1m;
     lua_shared_dict conn 1m;
     lua_shared_dict count 1m;
+    lua_shared_dict rate 1m;
 "
 --- config
     location = /t {
@@ -161,20 +170,23 @@ $::HttpConfig
             local limit_conn = require "resty.limit.conn"
             local limit_req = require "resty.limit.req"
             local limit_count = require "resty.limit.count"
+            local limit_rate = require "resty.limit.rate"
             local limit_traffic = require "resty.limit.traffic"
 
             local lim1 = limit_req.new("req", 3, 2)
             local lim2 = limit_req.new("req", 2, 3)
             local lim3 = limit_conn.new("conn", 4, 1, 2)
             local lim4 = limit_count.new("count", 2, 100)
+            local lim5 = limit_rate.new("rate", 500, 4)
 
-            local limiters = {lim1, lim2, lim3, lim4}
+            local limiters = {lim1, lim2, lim3, lim4, lim5}
 
             ngx.shared.req:flush_all()
             ngx.shared.conn:flush_all()
             ngx.shared.count:flush_all()
+            ngx.shared.rate:flush_all()
 
-            local keys = {"foo", "bar", "foo", "bar"}
+            local keys = {"foo", "bar", "foo", "bar", "foo"}
             local states = {}
             for i = 1, 6 do
                 local delay, err = limit_traffic.combine(limiters, keys, states)
@@ -192,16 +204,16 @@ $::HttpConfig
 --- request
     GET /t
 --- response_body_like eval
-qr/^1: 0, conn committed: true, states: 0, 0, 1, 1
-2: 0\.5, conn committed: true, states: 1, 1, 2, 0
+qr/^1: 0, conn committed: true, states: 0, 0, 1, 1, 3
+2: 0\.5, conn committed: true, states: 1, 1, 2, 0, 2
 failed to limit traffic: rejected
-states: 1, 1, 2, 0
+states: 1, 1, 2, 0, 2
 failed to limit traffic: rejected
-states: 1, 1, 2, 0
+states: 1, 1, 2, 0, 2
 failed to limit traffic: rejected
-states: 1, 1, 2, 0
+states: 1, 1, 2, 0, 2
 failed to limit traffic: rejected
-states: 1, 1, 2, 0
+states: 1, 1, 2, 0, 2
 $/s
 --- no_error_log
 [error]
@@ -209,7 +221,74 @@ $/s
 
 
 
-=== TEST 4: sanity (uncommit() previous limiters if a limiter rejects while committing a state)
+=== TEST 4: block by limit-rate (output states)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict req 1m;
+    lua_shared_dict conn 1m;
+    lua_shared_dict count 1m;
+    lua_shared_dict rate 1m;
+"
+--- config
+    location = /t {
+        content_by_lua_block {
+            local limit_conn = require "resty.limit.conn"
+            local limit_req = require "resty.limit.req"
+            local limit_count = require "resty.limit.count"
+            local limit_rate = require "resty.limit.rate"
+            local limit_traffic = require "resty.limit.traffic"
+
+            local lim1 = limit_req.new("req", 3, 2)
+            local lim2 = limit_req.new("req", 2, 3)
+            local lim3 = limit_conn.new("conn", 4, 1, 2)
+            local lim4 = limit_count.new("count", 10, 100)
+            local lim5 = limit_rate.new("rate", 500, 2, 1, 20)
+
+            local limiters = {lim1, lim2, lim3, lim4, lim5}
+
+            ngx.shared.req:flush_all()
+            ngx.shared.conn:flush_all()
+            ngx.shared.count:flush_all()
+            ngx.shared.rate:flush_all()
+
+            local keys = {"foo", "bar", "foo", "bar", "foo"}
+            local states = {}
+            for i = 1, 6 do
+                local delay, err = limit_traffic.combine(limiters, keys, states)
+                if not delay then
+                    ngx.say("failed to limit traffic: ", err)
+                    ngx.say("states: ", table.concat(states, ", "))
+                else
+                    ngx.say(i, ": ", delay,
+                            ", conn committed: ", lim3:is_committed(),
+                            ", states: ", table.concat(states, ", "))
+                end
+            end
+        }
+    }
+--- request
+    GET /t
+--- response_body_like eval
+qr/^1: 0, conn committed: true, states: 0, 0, 1, 9, 1
+2: 0\.5, conn committed: true, states: 1, 1, 2, 8, 0
+failed to limit traffic: rejected
+states: 1, 1, 2, 8, 0
+failed to limit traffic: rejected
+states: 1, 1, 2, 8, 0
+failed to limit traffic: rejected
+states: 1, 1, 2, 8, 0
+failed to limit traffic: rejected
+states: 1, 1, 2, 8, 0
+$/s
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 5: sanity (uncommit() previous limiters if a limiter rejects while committing a state)
 --- http_config eval: $::HttpConfig
 --- config
     location = /t {

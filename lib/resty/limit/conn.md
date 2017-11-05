@@ -191,7 +191,7 @@ key so that we can avoid a single client from flooding our service with too many
 
     Please note that this module
 does not prefix nor suffix the user key so it is the user's responsibility to ensure the key
-is unique in the `lua_shared_dict` shm zone).
+is unique in the `lua_shared_dict` shm zone.
 * `commit` is a boolean value. If set to `true`, the object will actually record the event
 in the shm zone backing the current object; otherwise it would just be a "dry run" (which is the default).
 
@@ -403,6 +403,7 @@ See Also
 ========
 * module [resty.limit.req](./req.md)
 * module [resty.limit.count](./count.md)
+* module [resty.limit.rate](./rate.md)
 * module [resty.limit.traffic](./traffic.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module

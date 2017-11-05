@@ -1,7 +1,7 @@
 Name
 ====
 
-resty.limit.traffic - Lua module for aggregating multiple instances of limiter classes
+resty.limit.traffic - Lua module for aggregating multiple instances of limiter classes.
 
 Table of Contents
 =================
@@ -112,7 +112,7 @@ client address. This module can take into account all the limiters involved with
 introducing any extra delays for the current request.
 
 The concrete limiters supplied can be an instance of the [resty.limit.req](./req.md) class
-or an instance of the [resty.limit.conn](./conn.md) class, or an instance of the [resty.limit.count](./count.md) class, or an instance of any user class
+or an instance of the [resty.limit.conn](./conn.md) class, or an instance of the [resty.limit.count](./count.md) class, or an instance of the [resty.limit.rate](./rate.md) class, or an instance of any user class
 which has a compatible API (see the [combine](#combine) class method for more details).
 
 Methods
@@ -133,12 +133,12 @@ state information returned by each concrete limiter object (if any).
 This method takes the following parameters:
 
 * `limiters` is an array-shaped Lua table that holds all the concrete limiter objects
-(for example, instances of the [resty.limit.req](lib/resty/limit/req.md) and/or
-[resty.limit.conn](lib/resty/limit/conn.md) and/or
-[resty.limit.count](lib/resty/limit/count.md) classes or other compatible objects).
+(for example, instances of the [resty.limit.req](./req.md) and/or
+[resty.limit.conn](./conn.md) and/or [resty.limit.count](./count.md) and/or
+[resty.limit.rate](./rate.md) classes or other compatible objects).
 
     The limiter object must have a method named `incoming` which takes two parameters,
-`key` and `commit`, just like the [resty.limit.req](lib/resty/limit/req.md) objects.
+`key` and `commit`, just like the [resty.limit.req](./req.md) objects.
 In addition, this `incoming` method must return a delay and another opaque value representing
 the current state (or a string describing the error when the first return value is `nil`).
 
@@ -151,8 +151,8 @@ in this table must equate that of the `limiters` table.
 state information returned by each of the concrete limiter object.
 
     For example, instances
-of the [resty.limit.req](lib/resty/limit/req.md) class return the current number of excessive
-requests per second (if exceeding the rate threshold) while instances of the [resty.limit.conn](lib/resty/conn.md) class return the current concurrency level.
+of the [resty.limit.req](./req.md) class return the current number of excessive
+requests per second (if exceeding the rate threshold) while instances of the [resty.limit.conn](./conn.md) class return the current concurrency level.
 
     When missing or set to `nil`, this method does not bother outputing any state information.
 
@@ -261,6 +261,7 @@ See Also
 * module [resty.limit.req](./req.md)
 * module [resty.limit.conn](./conn.md)
 * module [resty.limit.count](./count.md)
+* module [resty.limit.rate](./rate.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
 * OpenResty: https://openresty.org/

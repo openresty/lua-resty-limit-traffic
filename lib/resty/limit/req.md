@@ -1,7 +1,7 @@
 Name
 ====
 
-resty.limit.req - Lua module for limiting request rate for OpenResty/ngx_lua.
+resty.limit.req - Lua module for limiting request rate for OpenResty/ngx_lua, using the "leaky bucket" method.
 
 Table of Contents
 =================
@@ -298,6 +298,7 @@ See Also
 ========
 * module [resty.limit.conn](./conn.md)
 * module [resty.limit.count](./count.md)
+* module [resty.limit.rate](./rate.md)
 * module [resty.limit.traffic](./traffic.md)
 * library [lua-resty-limit-traffic](../../../README.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
