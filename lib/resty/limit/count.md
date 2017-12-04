@@ -75,6 +75,8 @@ Description
 This module provides APIs to help the OpenResty/ngx_lua user programmers limit request
 rate by a fixed number of requests in given time window.
 
+It is included by default in [OpenResty](https://openresty.org/) 1.13.6.1+.
+
 This Lua module's implementation is similar to [GitHub API Rate Limiting](https://developer.github.com/v3/#rate-limiting) But this Lua
 module is flexible in that it can be configured with different rates and window sizes.
 

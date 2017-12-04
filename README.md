@@ -264,8 +264,9 @@ limit
 the traffic, either request rate or request concurrency (or both).
 
 * [resty.limit.req](lib/resty/limit/req.md) provides request rate limiting and adjustment based on the "leaky bucket" method.
+* [resty.limit.count](lib/resty/limit/count.md) provides rate limiting based on a "fixed window" implementation since OpenResty 1.13.6.1+.
 * [resty.limit.conn](lib/resty/limit/conn.md) provides request concurrency level limiting and adjustment based on extra delays.
-* [resty.limit.traffic](lib/resty/limit/traffic.md) provides an aggregator to combine multiple instances of either the [resty.limit.req](lib/resty/limit/req.md) or [resty.limit.conn](lib/resty/limit/conn.md) classes (or both).
+* [resty.limit.traffic](lib/resty/limit/traffic.md) provides an aggregator to combine multiple instances of the [resty.limit.req](lib/resty/limit/req.md), [resty.limit.count](lib/resty/limit/count.md), or [resty.limit.conn](lib/resty/limit/conn.md) classes (or all).
 
 Please check out these Lua modules' own documentation for more details.
 
@@ -362,6 +363,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 See Also
 ========
 * module [resty.limit.req](lib/resty/limit/req.md)
+* module [resty.limit.count](lib/resty/limit/count.md)
 * module [resty.limit.conn](lib/resty/limit/conn.md)
 * module [resty.limit.traffic](lib/resty/limit/traffic.md)
 * the ngx_lua module: https://github.com/openresty/lua-nginx-module
