@@ -113,7 +113,7 @@ end
 
 
 function _M.set_conn(self, conn)
-    self.conn = conn
+    self.max = conn
 end
 
 
