@@ -235,3 +235,52 @@ committed: true
 --- no_error_log
 [error]
 [lua]
+
+
+=== TEST 5: a single key (set_conn && set_burst)
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_conn = require "resty.limit.conn"
+            local lim = limit_conn.new("store", 2, 1, 1)
+            ngx.shared.store:flush_all()
+            local key = "foo"
+            for i = 1, 10 do
+                local delay, err = lim:incoming(key, true)
+                if not delay then
+                    ngx.say("failed to limit conn: ", err)
+                else
+                    local conn = err
+                    ngx.say(i, ": ", delay, ", conn: ", conn)
+                end
+                if i == 4 then
+                    ngx.say("set_conn() && set_burst()")
+                    lim:set_conn(5)
+                    lim:set_burst(2)
+                end
+            end
+        ';
+    }
+--- request
+    GET /t
+--- response_body
+1: 0, conn: 1
+2: 0, conn: 2
+3: 1, conn: 3
+failed to limit conn: rejected
+set_conn() && set_burst()
+5: 0, conn: 4
+6: 0, conn: 5
+7: 1, conn: 6
+8: 1, conn: 7
+failed to limit conn: rejected
+failed to limit conn: rejected
+--- no_error_log
+[error]
+[lua]
