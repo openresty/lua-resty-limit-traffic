@@ -237,6 +237,7 @@ committed: true
 [lua]
 
 
+
 === TEST 5: a single key (set_conn && set_burst)
 --- http_config eval
 "
@@ -246,7 +247,7 @@ $::HttpConfig
 "
 --- config
     location = /t {
-        content_by_lua '
+        content_by_lua_block {
             local limit_conn = require "resty.limit.conn"
             local lim = limit_conn.new("store", 2, 1, 1)
             ngx.shared.store:flush_all()
@@ -265,7 +266,7 @@ $::HttpConfig
                     lim:set_burst(2)
                 end
             end
-        ';
+        }
     }
 --- request
     GET /t
