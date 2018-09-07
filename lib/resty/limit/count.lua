@@ -54,6 +54,12 @@ function _M.incoming(self, key, commit)
     end
 
     if count > limit then
+        if commit then
+            ok, err = self:uncommit(key)
+            if not ok then
+                return nil, err
+            end
+        end
         return nil, "rejected"
     end
 
