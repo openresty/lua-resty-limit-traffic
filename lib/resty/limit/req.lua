@@ -6,7 +6,6 @@
 
 local ffi = require "ffi"
 local math = require "math"
-local resty_lock = require "resty.lock"
 
 
 local ngx_shared = ngx.shared
@@ -91,6 +90,8 @@ function _M.incoming(self, key, commit)
 
     local lock
     if lock_dict_name then
+        local resty_lock = require "resty.lock"
+
         local err
         lock, err = resty_lock:new(lock_dict_name)
         if not lock then
