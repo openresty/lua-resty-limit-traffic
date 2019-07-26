@@ -6,6 +6,7 @@
 
 local ffi = require "ffi"
 local math = require "math"
+local resty_lock = require "resty.lock"
 
 
 local ngx_shared = ngx.shared
@@ -47,10 +48,17 @@ local mt = {
 }
 
 
-function _M.new(dict_name, rate, burst)
+function _M.new(dict_name, rate, burst, lock_dict_name)
     local dict = ngx_shared[dict_name]
     if not dict then
         return nil, "shared dict not found"
+    end
+
+    if lock_dict_name then
+        local lock_dict = ngx_shared[lock_dict_name]
+        if not lock_dict then
+            return nil, "lock shared dict not found"
+        end
     end
 
     assert(rate > 0 and burst >= 0)
@@ -59,6 +67,8 @@ function _M.new(dict_name, rate, burst)
         dict = dict,
         rate = rate * 1000,
         burst = burst * 1000,
+        dict_name = dict_name,
+        lock_dict_name = lock_dict_name,
     }
 
     return setmetatable(self, mt)
@@ -67,21 +77,43 @@ end
 
 -- sees an new incoming event
 -- the "commit" argument controls whether should we record the event in shm.
--- FIXME we have a (small) race-condition window between dict:get() and
+-- NOTE: if lock_dict_name is not set in limit_req.new(),
+-- we have a (small) race-condition window between dict:get() and
 -- dict:set() across multiple nginx worker processes. The size of the
 -- window is proportional to the number of workers.
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local rate = self.rate
+    local lock_dict_name = self.lock_dict_name
     local now = ngx_now() * 1000
 
     local excess
+
+    local lock
+    if lock_dict_name then
+        local err
+        lock, err = resty_lock:new(lock_dict_name)
+        if not lock then
+            return nil, err
+        end
+
+        local elapsed, err = lock:lock(self.dict_name)
+        if not elapsed then
+            return nil, err
+        end
+    end
 
     -- it's important to anchor the string value for the read-only pointer
     -- cdata:
     local v = dict:get(key)
     if v then
         if type(v) ~= "string" or #v ~= rec_size then
+            if lock then
+                local ok, err = lock:unlock()
+                if not ok then
+                    return nil, err
+                end
+            end
             return nil, "shdict abused by other users"
         end
         local rec = ffi_cast(const_rec_ptr_type, v)
@@ -98,6 +130,12 @@ function _M.incoming(self, key, commit)
         -- print("excess: ", excess)
 
         if excess > self.burst then
+            if lock then
+                local ok, err = lock:unlock()
+                if not ok then
+                    return nil, err
+                end
+            end
             return nil, "rejected"
         end
 
@@ -109,6 +147,13 @@ function _M.incoming(self, key, commit)
         rec_cdata.excess = excess
         rec_cdata.last = now
         dict:set(key, ffi_str(rec_cdata, rec_size))
+    end
+
+    if lock then
+        local ok, err = lock:unlock()
+        if not ok then
+            return nil, err
+        end
     end
 
     -- return the delay in seconds, as well as excess
