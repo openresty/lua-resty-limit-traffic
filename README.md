@@ -285,7 +285,13 @@ Installation
 This library is enabled by default in [OpenResty](https://openresty.org/) 1.11.2.2+.
 
 If you have to install this library manually,
-then ensure you are using at least OpenResty 1.11.2.1 or a custom nginx build including ngx_lua 0.10.6+. Also, You need to configure
+then ensure you are using at least OpenResty 1.11.2.1 or a custom nginx build including ngx_lua 0.10.6+.
+
+If you use a lock by passing non-nil value to `lock_shdict_name` parameter of
+[resty.limit.req new](lib/resty/limit/req.md#new) method, then ensure you install
+[openresty/lua-resty-lock](https://github.com/openresty/lua-resty-lock#prerequisites) too.
+
+Also, You need to configure
 the [lua_package_path](https://github.com/openresty/lua-nginx-module#lua_package_path) directive to
 add the path of your `lua-resty-limit-traffic` source tree to ngx_lua's Lua module search path, as in
 

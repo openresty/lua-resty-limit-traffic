@@ -87,6 +87,65 @@ http {
 }
 ```
 
+```nginx
+# demonstrate the usage of the resty.limit.req module (alone!) with lock
+http {
+    lua_shared_dict my_limit_req_store 100m;
+    lua_shared_dict my_limit_req_lock 12k;
+
+    server {
+        location / {
+            access_by_lua_block {
+                -- well, we could put the require() and new() calls in our own Lua
+                -- modules to save overhead. here we put them below just for
+                -- convenience.
+
+                local limit_req = require "resty.limit.req"
+
+                -- limit the requests under 200 req/sec with a burst of 100 req/sec,
+                -- that is, we delay requests under 300 req/sec and above 200
+                -- req/sec, and reject any requests exceeding 300 req/sec.
+                local lim, err = limit_req.new("my_limit_req_store", 200, 100, "my_limit_req_lock")
+                if not lim then
+                    ngx.log(ngx.ERR,
+                            "failed to instantiate a resty.limit.req object: ", err)
+                    return ngx.exit(500)
+                end
+
+                -- the following call must be per-request.
+                -- here we use the remote (IP) address as the limiting key
+                local key = ngx.var.binary_remote_addr
+                local delay, err = lim:incoming(key, true)
+                if not delay then
+                    if err == "rejected" then
+                        return ngx.exit(503)
+                    end
+                    ngx.log(ngx.ERR, "failed to limit req: ", err)
+                    return ngx.exit(500)
+                end
+
+                if delay >= 0.001 then
+                    -- the 2nd return value holds  the number of excess requests
+                    -- per second for the specified key. for example, number 31
+                    -- means the current request rate is at 231 req/sec for the
+                    -- specified key.
+                    local excess = err
+
+                    -- the request exceeding the 200 req/sec but below 300 req/sec,
+                    -- so we intentionally delay it here a bit to conform to the
+                    -- 200 req/sec rate.
+                    ngx.sleep(delay)
+                end
+            }
+
+            # content handler goes here. if it is content_by_lua, then you can
+            # merge the Lua code above in access_by_lua into your content_by_lua's
+            # Lua handler to save a little bit of CPU time.
+        }
+    }
+}
+```
+
 Description
 ===========
 
@@ -108,7 +167,7 @@ Methods
 
 new
 ---
-**syntax:** `obj, err = class.new(shdict_name, rate, burst)`
+**syntax:** `obj, err = class.new(shdict_name, rate, burst, lock_shdict_name)`
 
 Instantiates an object of this class. The `class` value is returned by the call `require "resty.limit.req"`.
 
@@ -124,6 +183,11 @@ This method takes the following arguments:
 
     Requests exceeding this hard limit
 will get rejected immediately.
+
+* `lock_shdict_name` is the opitional argument for the name of the [lua_shared_dict](https://github.com/openresty/lua-nginx-module#lua_shared_dict) shm zone
+used to lock the shared dict specified by `shdict_name`. If `lock_shdict_name` is omitted or the value is `nil`, no lock is used and there is a small race-condition window
+between getting and setting of the shared dict specified by `shdict_name` across multiple nginx worker processes. The size of the window is proportional to the number of workers.
+
 
 On failure, this method returns `nil` and a string describing the error (like a bad `lua_shared_dict` name).
 
