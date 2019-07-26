@@ -13,7 +13,7 @@ plan tests => repeat_each() * (blocks() * 4);
 my $pwd = cwd();
 
 our $HttpConfig = <<_EOC_;
-    lua_package_path "$pwd/lib/?.lua;;";
+    lua_package_path "$pwd/lib/?.lua;$pwd/..lua-resty-lock/lib/?.lua;;";
 _EOC_
 
 no_long_string();
