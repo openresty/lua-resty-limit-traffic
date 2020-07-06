@@ -38,7 +38,7 @@ local rec_cdata = ffi.new("struct lua_resty_limit_req_rec")
 
 
 local _M = {
-    _VERSION = '0.06'
+    _VERSION = '0.07'
 }
 
 
