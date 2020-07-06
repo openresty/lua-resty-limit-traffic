@@ -42,6 +42,7 @@ function _M.combine(limiters, keys, states)
                 -- we intentionally ignore any errors returned below.
                 limiters[j]:uncommit(keys[j])
             end
+            limiters[n]:uncommit(keys[n])
             return nil, err
         end
         if states then

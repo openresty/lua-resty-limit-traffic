@@ -280,3 +280,79 @@ state lim3: 2
 --- no_error_log
 [error]
 [lua]
+
+
+
+=== TEST 5: sanity (uncommit() the previous limiters and the last limiter if a limiter rejects while committing a state)
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local limit_traffic = require "resty.limit.traffic"
+
+            local limit_mock = {}
+            limit_mock.__index = limit_mock
+
+            function limit_mock.new(_, _, reject_on_commit)
+                return setmetatable({
+                    counters = {},
+                    reject_on_commit = reject_on_commit,
+                }, limit_mock)
+            end
+
+            function limit_mock:incoming(key, commit)
+                local count = self.counters[key] or 0
+
+                count = count + 1
+
+                if commit then
+                    self.counters[key] = count
+
+                    if self.reject_on_commit then
+                        return nil, "rejected by mock limiter"
+                    end
+                end
+
+                return count
+            end
+
+            function limit_mock:uncommit(key)
+                local count = self.counters[key] or 0
+                if count > 0 then
+                    count = count - 1
+                end
+
+                self.counters[key] = count
+            end
+
+            local lim1 = limit_mock.new(nil, 2)
+            local lim2 = limit_mock.new(nil, 2, true)
+            local lim3 = limit_mock.new(nil, 2)
+            local lim4 = limit_mock.new(nil, 2)
+
+            local limiters = {lim1, lim2, lim3, lim4}
+
+            local keys = {"foo", "bar", "baz", "bat"}
+
+            local delay, err = limit_traffic.combine(limiters, keys)
+            if not delay then
+                ngx.say(err)
+            end
+
+            ngx.say("state lim1: ", lim1:incoming(keys[1])) -- should be 1 because previous combine() call was uncommitted
+            ngx.say("state lim2: ", lim2:incoming(keys[2]))
+            ngx.say("state lim3: ", lim3:incoming(keys[3])) -- should be 1 because previous combine() call was uncommitted
+            ngx.say("state lim4: ", lim4:incoming(keys[4])) -- should be 1 because previous combine() call was uncommitted
+        }
+    }
+--- request
+    GET /t
+--- response_body
+rejected by mock limiter
+state lim1: 1
+state lim2: 2
+state lim3: 1
+state lim4: 1
+--- no_error_log
+[error]
+[lua]
