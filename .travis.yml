@@ -25,9 +25,9 @@ env:
     - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.006
   matrix:
-    - NGINX_VERSION=1.19.2 OPENSSL_VER=1.0.2u OPENSSL_PATCH_VER=1.0.2h
-    - NGINX_VERSION=1.19.2 OPENSSL_VER=1.1.0l OPENSSL_PATCH_VER=1.1.0d
-    - NGINX_VERSION=1.19.2 OPENSSL_VER=1.1.1g OPENSSL_PATCH_VER=1.1.1f
+    - NGINX_VERSION=1.19.3 OPENSSL_VER=1.0.2u OPENSSL_PATCH_VER=1.0.2h
+    - NGINX_VERSION=1.19.3 OPENSSL_VER=1.1.0l OPENSSL_PATCH_VER=1.1.0d
+    - NGINX_VERSION=1.19.3 OPENSSL_VER=1.1.1g OPENSSL_PATCH_VER=1.1.1f
 
 before_install:
   - sudo apt-get install -qq -y axel cpanminus > build.log 2>&1 || (cat build.log && exit 1)
@@ -39,7 +39,7 @@ install:
   - git clone https://github.com/openresty/nginx-devel-utils.git
   - git clone https://github.com/openresty/lua-cjson.git
   - git clone https://github.com/openresty/lua-nginx-module.git ../lua-nginx-module
-  - git clone -b 1.19.2.x https://github.com/xiaocang/no-pool-nginx.git ../no-pool-nginx
+  - git clone -b 1.19.3.x https://github.com/xiaocang/no-pool-nginx.git ../no-pool-nginx
   - git clone https://github.com/openresty/lua-resty-lrucache.git ../lua-resty-lrucache
   - git clone https://github.com/openresty/lua-resty-core.git ../lua-resty-core
   - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
