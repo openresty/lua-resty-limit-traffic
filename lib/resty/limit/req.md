@@ -161,7 +161,7 @@ this method returns a proper delay (in seconds) for the current request so that 
 the `rate` threshold as if it came a bit later rather than now.
 
     In addition, this method
-also returns a second return value indicating the number of excessive reqeusts per second
+also returns a second return value indicating the number of excessive requests per second
 at this point (including the current request). This 2nd return value can be used to monitor the
 unadjusted incoming request rate.
 3. If the request exceeds the `rate` + `burst` limit, then this method returns `nil` and
