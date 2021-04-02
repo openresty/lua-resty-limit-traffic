@@ -154,7 +154,7 @@ state information returned by each of the concrete limiter object.
 of the [resty.limit.req](lib/resty/limit/req.md) class return the current number of excessive
 requests per second (if exceeding the rate threshold) while instances of the [resty.limit.conn](lib/resty/conn.md) class return the current concurrency level.
 
-    When missing or set to `nil`, this method does not bother outputing any state information.
+    When missing or set to `nil`, this method does not bother outputting any state information.
 
 This method returns the delay in seconds (the caller should sleep before processing
 the current request) across all the concrete limiter objects specified upon each

@@ -78,7 +78,7 @@ failed to limit conn: rejected
 
 
 
-=== TEST 2: a single key (somtimes not commit, and no leaving)
+=== TEST 2: a single key (sometimes not commit, and no leaving)
 --- http_config eval
 "
 $::HttpConfig

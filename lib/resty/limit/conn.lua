@@ -72,7 +72,7 @@ function _M.incoming(self, key, commit)
     end
 
     if conn > max then
-        -- make the exessive connections wait
+        -- make the excessive connections wait
         return self.unit_delay * floor((conn - 1) / max), conn
     end
 
