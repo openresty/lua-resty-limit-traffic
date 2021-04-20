@@ -47,7 +47,7 @@ local mt = {
 }
 
 
-function _M.new(dict_name, rate, burst)
+function _M.new(dict_name, rate, burst, exptime)
     local dict = ngx_shared[dict_name]
     if not dict then
         return nil, "shared dict not found"
@@ -59,6 +59,7 @@ function _M.new(dict_name, rate, burst)
         dict = dict,
         rate = rate * 1000,
         burst = burst * 1000,
+        exptime = exptime or 0,
     }
 
     return setmetatable(self, mt)
@@ -73,6 +74,7 @@ end
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local rate = self.rate
+    local exptime = self.exptime
     local now = ngx_now() * 1000
 
     local excess
@@ -108,7 +110,7 @@ function _M.incoming(self, key, commit)
     if commit then
         rec_cdata.excess = excess
         rec_cdata.last = now
-        dict:set(key, ffi_str(rec_cdata, rec_size))
+        dict:set(key, ffi_str(rec_cdata, rec_size), exptime)
     end
 
     -- return the delay in seconds, as well as excess
@@ -119,6 +121,7 @@ end
 function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
+    local exptime = self.exptime
 
     local v = dict:get(key)
     if not v then
@@ -135,7 +138,7 @@ function _M.uncommit(self, key)
 
     rec_cdata.excess = excess
     rec_cdata.last = rec.last
-    dict:set(key, ffi_str(rec_cdata, rec_size))
+    dict:set(key, ffi_str(rec_cdata, rec_size), exptime)
     return true
 end
 
