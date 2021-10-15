@@ -219,6 +219,8 @@ remaining: 2
                 local ok, err = lim:uncommit(key)
                 if not ok then
                     ngx.say("failed to uncommit: ", err)
+                else
+                    ngx.say("limit: ", ok)
                 end
             end
         }
@@ -227,7 +229,96 @@ remaining: 2
     GET /t
 --- response_body
 remaining: 1
+limit: 2
 remaining: 1
+limit: 2
+remaining: 1
+limit: 2
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 6: a single key shared by two limits (commit)
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local limit_count = require "resty.limit.count"
+            local lim1 = limit_count.new("store", 1, 10)
+            local lim2 = limit_count.new("store", 10, 10)
+            ngx.shared.store:flush_all()
+            local key = "foo"
+
+            local delay, err = lim1:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit count: ", err)
+            else
+                local remaining = err
+                ngx.say("remaining: ", remaining)
+            end
+
+            local delay, err = lim2:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit count: ", err)
+            else
+                local remaining = err
+                ngx.say("remaining: ", remaining)
+            end
+        }
+    }
+--- request
+    GET /t
+--- response_body
+remaining: 0
+remaining: 8
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 7: over incrementing when over limit
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local limit_count = require "resty.limit.count"
+            local lim = limit_count.new("store", 1, 10)
+            ngx.shared.store:flush_all()
+            local key = "foo"
+
+            local delay, err = lim:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit count: ", err)
+            else
+                local remaining = err
+                ngx.say("remaining: ", remaining)
+            end
+
+            local delay, err = lim:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit count: ", err)
+            else
+                local remaining = err
+                ngx.say("remaining: ", remaining)
+            end
+
+            local remaining, err = lim:uncommit(key)
+
+            if not remaining then
+                ngx.say("failed to uncommit count: ", err)
+            else
+                ngx.say("remaining: ", remaining)
+            end
+        }
+    }
+--- request
+    GET /t
+--- response_body
+remaining: 0
+failed to limit count: rejected
 remaining: 1
 --- no_error_log
 [error]
