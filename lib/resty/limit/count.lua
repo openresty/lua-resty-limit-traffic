@@ -15,6 +15,15 @@ local mt = {
     __index = _M
 }
 
+local incr_support_init_ttl
+local ngx_config = ngx.config
+local ngx_lua_v = ngx.config.ngx_lua_version
+if not ngx_config or not ngx_lua_v or (ngx_lua_v < 10012) then
+    incr_support_init_ttl = false
+else
+    incr_support_init_ttl = true
+end
+
 
 -- the "limit" argument controls number of request allowed in a time window.
 -- time "window" argument controls the time window in seconds.
@@ -35,8 +44,33 @@ function _M.new(dict_name, limit, window)
     return setmetatable(self, mt)
 end
 
+-- incoming function using incr with init_ttl
+-- need OpenResty version > v0.10.12rc2
+local function incoming_new(self, key, commit)
+    local dict = self.dict
+    local limit = self.limit
+    local window = self.window
 
-function _M.incoming(self, key, commit)
+    local remaining, ok, err
+
+    if commit then
+        remaining, err = dict:incr(key, -1, limit, window)
+        if not remaining then
+            return nil, err
+        end
+    else
+        remaining = (dict:get(key) or limit) - 1
+    end
+
+    if remaining < 0 then
+        return nil, "rejected"
+    end
+
+    return 0, remaining
+end
+
+-- incoming function using incr and expire
+local function incoming_old(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
@@ -80,6 +114,7 @@ function _M.incoming(self, key, commit)
     return 0, remaining
 end
 
+_M.incoming = incr_support_init_ttl and incoming_new or incoming_old
 
 -- uncommit remaining and return remaining value
 function _M.uncommit(self, key)
