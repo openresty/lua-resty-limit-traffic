@@ -44,7 +44,9 @@ function _M.new(dict_name, limit, window)
     return setmetatable(self, mt)
 end
 
-function _M.incoming_new(self, key, commit)
+-- incoming function using incr with init_ttl
+-- need OpenResty version > v0.10.12rc2
+local function incoming_new(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
@@ -67,7 +69,8 @@ function _M.incoming_new(self, key, commit)
     return 0, remaining
 end
 
-function _M.incoming_old(self, key, commit)
+-- incoming function using incr and expire
+local function incoming_old(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
@@ -111,14 +114,7 @@ function _M.incoming_old(self, key, commit)
     return 0, remaining
 end
 
-function _M.incoming(self, key, commit)
-    if incr_support_init_ttl then
-        return self:incoming_new(key, commit)
-    else
-        return self:incoming_old(key, commit)
-    end
-end
-
+_M.incoming = incr_support_init_ttl and incoming_new or incoming_old
 
 -- uncommit remaining and return remaining value
 function _M.uncommit(self, key)
