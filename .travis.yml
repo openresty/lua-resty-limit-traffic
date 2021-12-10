@@ -24,7 +24,7 @@ env:
     - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.006
   matrix:
-    - NGINX_VERSION=1.19.9 OPENSSL_VER=1.1.1k OPENSSL_PATCH_VER=1.1.1f
+    - NGINX_VERSION=1.21.4 OPENSSL_VER=1.1.1l OPENSSL_PATCH_VER=1.1.1f
 
 before_install:
   - sudo apt-get install -qq -y axel cpanminus > build.log 2>&1 || (cat build.log && exit 1)
