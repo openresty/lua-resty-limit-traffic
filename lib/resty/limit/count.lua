@@ -51,7 +51,7 @@ local function incoming_new(self, key, commit)
     local limit = self.limit
     local window = self.window
 
-    local remaining, ok, err
+    local remaining, err
 
     if commit then
         remaining, err = dict:incr(key, -1, limit, window)
