@@ -78,8 +78,8 @@ qr/^1: 0, conn committed: true, states: 0, 0, 1, 9
 2: 0\.5, conn committed: true, states: 1, 1, 2, 8
 3: 1, conn committed: true, states: 2, 2, 3, 7
 failed to limit traffic: rejected
-5: 0\.(?:4[6-9]|5|5[0-4])\d*, conn committed: true, states: 0, (?:1|1\.0[0-4]\d*|0\.9[6-9]\d*), 4, 6
-6: 2, conn committed: true, states: 1, (?:2|2\.0[0-4]\d*|1\.9[6-9]\d*), 5, 5
+5: 0\.(?:4[6-9]|5|5[0-4])\d*, conn committed: true, states: 0(?:\.0\d+)?, (?:1|1\.0[0-4]\d*|0\.9[6-9]\d*), 4, 6
+6: 2, conn committed: true, states: 1(?:\.0\d+)?, (?:2|2\.0[0-4]\d*|1\.9[6-9]\d*), 5, 5
 $/s
 --- no_error_log
 [error]
