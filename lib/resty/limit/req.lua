@@ -67,9 +67,6 @@ end
 
 -- sees an new incoming event
 -- the "commit" argument controls whether should we record the event in shm.
--- FIXME we have a (small) race-condition window between dict:get() and
--- dict:set() across multiple nginx worker processes. The size of the
--- window is proportional to the number of workers.
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local rate = self.rate
@@ -79,36 +76,45 @@ function _M.incoming(self, key, commit)
 
     -- it's important to anchor the string value for the read-only pointer
     -- cdata:
-    local v = dict:get(key)
-    if v then
-        if type(v) ~= "string" or #v ~= rec_size then
-            return nil, "shdict abused by other users"
-        end
-        local rec = ffi_cast(const_rec_ptr_type, v)
-        local elapsed = now - tonumber(rec.last)
+    while true do
+	local v = dict:get(key)
+	if v then
+	    if type(v) ~= "string" or #v ~= rec_size then
+		return nil, "shdict abused by other users"
+	    end
+	    local rec = ffi_cast(const_rec_ptr_type, v)
+	    local elapsed = now - tonumber(rec.last)
 
-        -- print("elapsed: ", elapsed, "ms")
+	    -- print("elapsed: ", elapsed, "ms")
 
-        -- we do not handle changing rate values specifically. the excess value
-        -- can get automatically adjusted by the following formula with new rate
-        -- values rather quickly anyway.
-        excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000,
-                     0)
+	    -- we do not handle changing rate values specifically. the excess value
+	    -- can get automatically adjusted by the following formula with new rate
+	    -- values rather quickly anyway.
+	    excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000,
+			 0)
 
-        -- print("excess: ", excess)
+	    -- print("excess: ", excess)
 
-        if excess > self.burst then
-            return nil, "rejected"
-        end
+	    if excess > self.burst then
+		return nil, "rejected"
+	    end
 
-    else
-        excess = 0
-    end
+	else
+	    excess = 0
+	end
 
-    if commit then
-        rec_cdata.excess = excess
-        rec_cdata.last = now
-        dict:set(key, ffi_str(rec_cdata, rec_size))
+	if commit then
+	    rec_cdata.excess = excess
+	    rec_cdata.last = now
+	    local succ, err, forcible = dict:set_when(key, v, ffi_str(rec_cdata, rec_size))
+	    if succ then
+		break
+	    elseif err ~= "already modified" then
+		return nil, err
+	    end
+	else
+	    break
+	end
     end
 
     -- return the delay in seconds, as well as excess
@@ -120,22 +126,29 @@ function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
 
-    local v = dict:get(key)
-    if not v then
-        return nil, "not found"
+    while true do
+	local v = dict:get(key)
+	if not v then
+	    return nil, "not found"
+	end
+
+	if type(v) ~= "string" or #v ~= rec_size then
+	    return nil, "shdict abused by other users"
+	end
+
+	local rec = ffi_cast(const_rec_ptr_type, v)
+
+	local excess = max(tonumber(rec.excess) - 1000, 0)
+
+	rec_cdata.excess = excess
+	rec_cdata.last = rec.last
+	local succ, err, forcible = dict:set_when(key, v, ffi_str(rec_cdata, rec_size))
+	if succ then
+	    break
+	elseif err ~= "already modified" then
+	    return nil, err
+	end
     end
-
-    if type(v) ~= "string" or #v ~= rec_size then
-        return nil, "shdict abused by other users"
-    end
-
-    local rec = ffi_cast(const_rec_ptr_type, v)
-
-    local excess = max(tonumber(rec.excess) - 1000, 0)
-
-    rec_cdata.excess = excess
-    rec_cdata.last = rec.last
-    dict:set(key, ffi_str(rec_cdata, rec_size))
     return true
 end
 
