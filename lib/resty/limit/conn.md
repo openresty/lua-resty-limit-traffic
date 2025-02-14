@@ -193,7 +193,8 @@ key so that we can avoid a single client from flooding our service with too many
 does not prefix nor suffix the user key so it is the user's responsibility to ensure the key
 is unique in the `lua_shared_dict` shm zone).
 * `commit` is a boolean value. If set to `true`, the object will actually record the event
-in the shm zone backing the current object; otherwise it would just be a "dry run" (which is the default).
+in the shm zone backing the current object; otherwise it would just be a "dry run" (which is the default),
+which does not change the committed state.
 
 The return values depend on the following cases:
 
