@@ -12,7 +12,12 @@ local floor = math.floor
 local ngx_shared = ngx.shared
 local assert = assert
 
-
+---@class resty.limit.conn
+---@field dict ngx.shared.DICT
+---@field max number
+---@field burst number
+---@field unit_delay number
+---@field committed boolean?
 local _M = {
     _VERSION = '0.09'
 }
@@ -22,7 +27,11 @@ local mt = {
     __index = _M
 }
 
-
+---@param dict_name string
+---@param max integer
+---@param burst integer
+---@param default_conn_delay number
+---@return table?, string?
 function _M.new(dict_name, max, burst, default_conn_delay)
     local dict = ngx_shared[dict_name]
     if not dict then
@@ -33,21 +42,24 @@ function _M.new(dict_name, max, burst, default_conn_delay)
 
     local self = {
         dict = dict,
-        max = max + 0,    -- just to ensure the param is good
+        max = max + 0, -- just to ensure the param is good
         burst = burst,
         unit_delay = default_conn_delay,
     }
 
-    return setmetatable(self, mt)
+    return setmetatable(self, mt), nil
 end
 
-
+---@param key string|number
+---@param commit boolean
+---@return number?, number|((ngx.shared.DICT.error)?)
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local max = self.max
 
     self.committed = false
 
+    ---@type integer?, (ngx.shared.DICT.error)?
     local conn, err
     if commit then
         conn, err = dict:incr(key, 1, 0)
@@ -63,7 +75,6 @@ function _M.incoming(self, key, commit)
             return nil, "rejected"
         end
         self.committed = true
-
     else
         conn = (dict:get(key) or 0) + 1
         if conn > max + self.burst then
@@ -80,12 +91,14 @@ function _M.incoming(self, key, commit)
     return 0, conn
 end
 
-
+---@return boolean?
 function _M.is_committed(self)
     return self.committed
 end
 
-
+---@param key string|number
+---@param req_latency number?
+---@return integer?, (ngx.shared.DICT.error)?
 function _M.leaving(self, key, req_latency)
     assert(key)
     local dict = self.dict
@@ -103,7 +116,8 @@ function _M.leaving(self, key, req_latency)
     return conn
 end
 
-
+---@param key string|number
+---@return integer?, (ngx.shared.DICT.error)?, boolean
 function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
@@ -111,15 +125,14 @@ function _M.uncommit(self, key)
     return dict:incr(key, -1)
 end
 
-
-function _M.set_conn(self, conn)
-    self.max = conn
+---@param max_conn integer
+function _M.set_conn(self, max_conn)
+    self.max = max_conn
 end
 
-
+---@param burst integer
 function _M.set_burst(self, burst)
     self.burst = burst
 end
-
 
 return _M

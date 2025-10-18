@@ -6,8 +6,12 @@ local setmetatable = setmetatable
 local assert = assert
 
 
+---@class resty.limit.count
+---@field dict ngx.shared.DICT
+---@field limit integer
+---@field window integer
 local _M = {
-   _VERSION = '0.09'
+    _VERSION = '0.09'
 }
 
 
@@ -15,6 +19,7 @@ local mt = {
     __index = _M
 }
 
+---@type boolean
 local incr_support_init_ttl
 local ngx_config = ngx.config
 local ngx_lua_v = ngx.config.ngx_lua_version
@@ -25,8 +30,12 @@ else
 end
 
 
--- the "limit" argument controls number of request allowed in a time window.
--- time "window" argument controls the time window in seconds.
+--- the "limit" argument controls number of request allowed in a time window.
+--- time "window" argument controls the time window in seconds.
+---@param dict_name string
+---@param limit integer
+---@param window integer
+---@return resty.limit.count?, string?
 function _M.new(dict_name, limit, window)
     local dict = ngx_shared[dict_name]
     if not dict then
@@ -41,16 +50,21 @@ function _M.new(dict_name, limit, window)
         window = window,
     }
 
-    return setmetatable(self, mt)
+    return setmetatable(self, mt), nil
 end
 
 -- incoming function using incr with init_ttl
 -- need OpenResty version > v0.10.12rc2
+---@param self resty.limit.count
+---@param key string|number
+---@param commit boolean
+---@return integer?, number|((ngx.shared.DICT.error)?)
 local function incoming_new(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
 
+    ---@type integer?, (ngx.shared.DICT.error)?
     local remaining, err
 
     if commit then
@@ -70,11 +84,16 @@ local function incoming_new(self, key, commit)
 end
 
 -- incoming function using incr and expire
+---@param self resty.limit.count
+---@param key string|number
+---@param commit boolean
+---@return integer?, number|((ngx.shared.DICT.error)?)
 local function incoming_old(self, key, commit)
     local dict = self.dict
     local limit = self.limit
     local window = self.window
 
+    ---@type integer?, boolean?, (ngx.shared.DICT.error)?
     local remaining, ok, err
 
     if commit then
@@ -96,13 +115,11 @@ local function incoming_old(self, key, commit)
                     if not ok then
                         return nil, err
                     end
-
                 else
                     return nil, err
                 end
             end
         end
-
     else
         remaining = (dict:get(key) or limit) - 1
     end
@@ -117,6 +134,9 @@ end
 _M.incoming = incr_support_init_ttl and incoming_new or incoming_old
 
 -- uncommit remaining and return remaining value
+---@param self resty.limit.count
+---@param key string|number
+---@return integer?, (ngx.shared.DICT.error)?
 function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
@@ -133,6 +153,5 @@ function _M.uncommit(self, key)
 
     return remaining
 end
-
 
 return _M
