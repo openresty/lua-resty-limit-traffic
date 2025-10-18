@@ -263,7 +263,7 @@ This library provides several Lua modules to help OpenResty/ngx_lua users to con
 limit
 the traffic, either request rate or request concurrency (or both).
 
-* [resty.limit.req](lib/resty/limit/req.md) provides request rate limiting and adjustment based on the "leaky bucket" method.
+* [resty.limit.req](lib/resty/limit/req.md) provides request rate limiting and adjustment based on the "leaky bucket" + "sliding window" method.
 * [resty.limit.count](lib/resty/limit/count.md) provides rate limiting based on a "fixed window" implementation since OpenResty 1.13.6.1+.
 * [resty.limit.conn](lib/resty/limit/conn.md) provides request concurrency level limiting and adjustment based on extra delays.
 * [resty.limit.traffic](lib/resty/limit/traffic.md) provides an aggregator to combine multiple instances of the [resty.limit.req](lib/resty/limit/req.md), [resty.limit.count](lib/resty/limit/count.md), or [resty.limit.conn](lib/resty/limit/conn.md) classes (or all).
