@@ -108,7 +108,7 @@ Methods
 
 new
 ---
-**syntax:** `obj, err = class.new(shdict_name, rate, burst)`
+**syntax:** `obj, err = class.new(shdict_name, rate, burst, exptime)`
 
 Instantiates an object of this class. The `class` value is returned by the call `require "resty.limit.req"`.
 
@@ -124,6 +124,9 @@ This method takes the following arguments:
 
     Requests exceeding this hard limit
 will get rejected immediately.
+* `exptime` is the expiration time (in seconds) for the inserted limiter key.
+
+    Optional argument. Default is 0 (never expire key-value pair).
 
 On failure, this method returns `nil` and a string describing the error (like a bad `lua_shared_dict` name).
 
