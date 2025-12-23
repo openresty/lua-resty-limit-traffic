@@ -46,7 +46,9 @@ function _M.incoming(self, key, commit)
     local dict = self.dict
     local max = self.max
 
-    self.committed = false
+    if self.committed == nil then
+        self.committed = false
+    end
 
     local conn, err
     if commit then
