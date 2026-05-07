@@ -28,7 +28,7 @@ env:
     - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.006
   matrix:
-    - NGINX_VERSION=1.29.4 OPENSSL_VER=1.1.1w OPENSSL_PATCH_VER=1.1.1f
+    - NGINX_VERSION=1.29.8
 
 before_install:
   - sudo apt-get install -qq -y axel cpanminus > build.log 2>&1 || (cat build.log && exit 1)
@@ -49,6 +49,7 @@ install:
   - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
 
 script:
+  - cpanm --sudo --notest Test::Nginx IPC::Run Test2::Util > build.log 2>&1 || (cat build.log && exit 1)
   - cd test-nginx && (sudo cpanm . > build.log 2>&1 || (cat build.log && exit 1)) && cd ..
   - cd luajit2/
   - make -j$JOBS CCDEBUG=-g Q= PREFIX=$LUAJIT_PREFIX CC=$CC XCFLAGS='-DLUA_USE_APICHECK -DLUA_USE_ASSERT -msse4.2' > build.log 2>&1 || (cat build.log && exit 1)
