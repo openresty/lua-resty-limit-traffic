@@ -114,23 +114,23 @@ committed: false
 3: 0, conn: 1
 committed: true
 4: 0, conn: 2
-committed: false
+committed: true
 5: 0, conn: 2
 committed: true
 6: 1, conn: 3
-committed: false
+committed: true
 7: 1, conn: 3
-committed: false
+committed: true
 8: 1, conn: 3
-committed: false
+committed: true
 9: 1, conn: 3
-committed: false
+committed: true
 10: 1, conn: 3
-committed: false
+committed: true
 11: 1, conn: 3
-committed: false
+committed: true
 12: 1, conn: 3
-committed: false
+committed: true
 --- no_error_log
 [error]
 [lua]
@@ -282,6 +282,46 @@ set_conn() && set_burst()
 8: 1, conn: 7
 failed to limit conn: rejected
 failed to limit conn: rejected
+--- no_error_log
+[error]
+[lua]
+
+
+
+=== TEST 6: incoming dry run shall not modify committed state
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua_block {
+            local limit_conn = require "resty.limit.conn"
+            local lim = limit_conn.new("store", 2, 1, 1)
+            ngx.shared.store:flush_all()
+            local key = "foo"
+
+            local delay, err = lim:incoming(key, true)
+            if not delay then
+                ngx.say("failed to limit conn: ", err)
+            end
+            delay, err = lim:incoming(key, false)
+            if not delay then
+                ngx.say("failed to limit conn: ", err)
+            end
+            if not lim:is_committed() then
+                ngx.say("not committed")
+            else
+                ngx.say("committed")
+            end
+        }
+    }
+--- request
+    GET /t
+--- response_body
+committed
 --- no_error_log
 [error]
 [lua]
