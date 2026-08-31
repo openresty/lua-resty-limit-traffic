@@ -288,3 +288,40 @@ $::HttpConfig
 --- no_error_log
 [error]
 [lua]
+
+
+
+=== TEST 8: very low rate and burst (0.1) - first request always accepted
+--- http_config eval
+"
+$::HttpConfig
+
+    lua_shared_dict store 1m;
+"
+--- config
+    location = /t {
+        content_by_lua '
+            local limit_req = require "resty.limit.req"
+            ngx.shared.store:flush_all()
+            local lim = limit_req.new("store", 0.1, 0.1)
+            local key = "test_key"
+
+            for i = 1, 3 do
+                local delay, err = lim:incoming(key, true)
+                if not delay then
+                    ngx.say(i, ": failed to limit request: ", err)
+                else
+                    ngx.say(i, ": delay: ", delay)
+                end
+            end
+        ';
+    }
+--- request
+GET /t
+--- response_body
+1: delay: 0
+2: failed to limit request: rejected
+3: failed to limit request: rejected
+--- no_error_log
+[error]
+[lua]
