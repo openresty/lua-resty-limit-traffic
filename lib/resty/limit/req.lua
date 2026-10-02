@@ -4,39 +4,23 @@
 -- module.
 
 
-local ffi = require "ffi"
 local math = require "math"
-
 
 local ngx_shared = ngx.shared
 local ngx_now = ngx.now
 local setmetatable = setmetatable
-local ffi_cast = ffi.cast
-local ffi_str = ffi.string
-local abs = math.abs
-local tonumber = tonumber
 local type = type
 local assert = assert
-local max = math.max
 
 
--- TODO: we could avoid the tricky FFI cdata when lua_shared_dict supports
--- hash-typed values as in redis.
-ffi.cdef[[
-    struct lua_resty_limit_req_rec {
-        unsigned long        excess;
-        uint64_t             last;  /* time in milliseconds */
-        /* integer value, 1 corresponds to 0.001 r/s */
-    };
-]]
-local const_rec_ptr_type = ffi.typeof("const struct lua_resty_limit_req_rec*")
-local rec_size = ffi.sizeof("struct lua_resty_limit_req_rec")
-
--- we can share the cdata here since we only need it temporarily for
--- serialization inside the shared dict:
-local rec_cdata = ffi.new("struct lua_resty_limit_req_rec")
+--- store 3 seconds of request count history
+local KEY_TTL = 3
 
 
+---@class resty.limit.req
+---@field dict ngx.shared.DICT
+---@field rate number
+---@field burst number
 local _M = {
     _VERSION = '0.09'
 }
@@ -47,6 +31,10 @@ local mt = {
 }
 
 
+---@param dict_name string
+---@param rate number
+---@param burst number
+---@return resty.limit.req?, string?
 function _M.new(dict_name, rate, burst)
     local dict = ngx_shared[dict_name]
     if not dict then
@@ -57,97 +45,98 @@ function _M.new(dict_name, rate, burst)
 
     local self = {
         dict = dict,
-        rate = rate * 1000,
-        burst = burst * 1000,
+        rate = rate,
+        burst = burst,
     }
 
-    return setmetatable(self, mt)
+    return setmetatable(self, mt), nil
 end
-
 
 -- sees an new incoming event
 -- the "commit" argument controls whether should we record the event in shm.
--- FIXME we have a (small) race-condition window between dict:get() and
--- dict:set() across multiple nginx worker processes. The size of the
--- window is proportional to the number of workers.
+---@param self resty.limit.req
+---@param key string|number
+---@param commit boolean
 function _M.incoming(self, key, commit)
     local dict = self.dict
     local rate = self.rate
-    local now = ngx_now() * 1000
+    local now_sec = ngx_now()
+    local now_ms = now_sec * 1000.0
+    local current_second = math.floor(now_sec)
+    local current_second_key = key .. ":" .. tostring(current_second)
+    local previous_second_key = key .. ":" .. tostring(current_second - 1)
 
-    local excess
+    local prev_req_count = dict:get(previous_second_key)
+    if not prev_req_count or type(prev_req_count) ~= "number" then
+        prev_req_count = 0
+    end
 
-    -- it's important to anchor the string value for the read-only pointer
-    -- cdata:
-    local v = dict:get(key)
-    if v then
-        if type(v) ~= "string" or #v ~= rec_size then
-            return nil, "shdict abused by other users"
-        end
-        local rec = ffi_cast(const_rec_ptr_type, v)
-        local elapsed = now - tonumber(rec.last)
+    local curr_req_count = dict:incr(current_second_key, 1, 0, KEY_TTL)
+    if not curr_req_count then
+        --- something is really wrong
+        --- possibly oom in the shared dict
+        return nil, "failed to increment request count"
+    end
 
-        -- print("elapsed: ", elapsed, "ms")
+    --- now check if we are within limits
+    local elapsed = now_ms - (current_second * 1000.0)
 
-        -- we do not handle changing rate values specifically. the excess value
-        -- can get automatically adjusted by the following formula with new rate
-        -- values rather quickly anyway.
-        excess = max(tonumber(rec.excess) - rate * abs(elapsed) / 1000 + 1000,
-                     0)
+    -- sliding window approach
+    -- we assume that requests were uniformly distributed in the last second
+    local sliding_window_rate = curr_req_count + (prev_req_count * (1000.0 - elapsed) / 1000.0)
 
-        -- print("excess: ", excess)
+    local to_reject = false
+    local to_delay = false
+    local delay_ms = 0
 
-        if excess > self.burst then
-            return nil, "rejected"
-        end
+    if sliding_window_rate > (rate + self.burst) then
+        to_reject = true
+    elseif sliding_window_rate > rate then
+        to_delay = true
+        delay_ms = (sliding_window_rate * 1000 / rate) - 1000
+    end
 
+    if not commit then
+        dict:incr(current_second_key, -1)
+    end
+
+    if to_reject then
+        return nil, "rejected"
+    elseif to_delay then
+        return delay_ms / 1000.0, sliding_window_rate - rate
     else
-        excess = 0
+        return 0, 0
     end
-
-    if commit then
-        rec_cdata.excess = excess
-        rec_cdata.last = now
-        dict:set(key, ffi_str(rec_cdata, rec_size))
-    end
-
-    -- return the delay in seconds, as well as excess
-    return excess / rate, excess / 1000
 end
 
-
+---@param self resty.limit.req
+---@param key string|number
+---@return boolean?, string?
 function _M.uncommit(self, key)
     assert(key)
     local dict = self.dict
 
-    local v = dict:get(key)
-    if not v then
-        return nil, "not found"
+    local now_sec = ngx_now()
+    local current_second = math.floor(now_sec)
+    local current_second_key = key .. ":" .. tostring(current_second)
+
+    local curr_req_count, err = dict:incr(current_second_key, -1, 1, KEY_TTL)
+    if not curr_req_count then
+        return nil, err
     end
-
-    if type(v) ~= "string" or #v ~= rec_size then
-        return nil, "shdict abused by other users"
-    end
-
-    local rec = ffi_cast(const_rec_ptr_type, v)
-
-    local excess = max(tonumber(rec.excess) - 1000, 0)
-
-    rec_cdata.excess = excess
-    rec_cdata.last = rec.last
-    dict:set(key, ffi_str(rec_cdata, rec_size))
     return true
 end
 
-
+---@param self resty.limit.req
+---@param rate number
 function _M.set_rate(self, rate)
-    self.rate = rate * 1000
+    self.rate = rate
 end
 
-
+---@param self resty.limit.req
+---@param burst number
 function _M.set_burst(self, burst)
-    self.burst = burst * 1000
+    self.burst = burst
 end
-
 
 return _M

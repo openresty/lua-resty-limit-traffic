@@ -8,6 +8,7 @@
 local max = math.max
 
 
+---@class resty.limit.traffic
 local _M = {
     _VERSION = '0.09'
 }
@@ -18,6 +19,9 @@ local _M = {
 -- is the "excess" value (i.e., the number of excessive requests each second),
 -- and for resty.limit.conn, the state is the current concurrency level
 -- (including the current new connection).
+---@param limiters resty.limit.req[]|resty.limit.conn[]|resty.limit.count[]
+---@param keys string[]|number[]
+---@param states (number|((ngx.shared.DICT.error)?))[]
 function _M.combine(limiters, keys, states)
     local n = #limiters
     local max_delay = 0
@@ -53,6 +57,5 @@ function _M.combine(limiters, keys, states)
     end
     return max_delay
 end
-
 
 return _M

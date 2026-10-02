@@ -91,7 +91,7 @@ Description
 ===========
 
 This module provides APIs to help the OpenResty/ngx_lua user programmers limit request
-rate using the "leaky bucket" method.
+rate using the "leaky bucket" + "sliding window" method.
 
 If you want to use multiple different instances of this class at once or use one instance
 of this class with instances of other classes (like [resty.limit.conn](./conn.md)),
@@ -195,8 +195,8 @@ uncommit
 --------
 **syntax:** `ok, err = obj:uncommit(key)`
 
-This tries to undo the commit of the `incoming` call. This is simply an approximation
-and should be used with care. This method is mainly for being used in the [resty.limit.traffic](./traffic.md)
+This tries to undo the commit of the `incoming` call.
+This method is mainly for being used in the [resty.limit.traffic](./traffic.md)
 Lua module when combining multiple limiters at the same time.
 
 [Back to TOC](#table-of-contents)
